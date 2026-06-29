@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist);
+
+  /* Marca Ervas Finas */
+  --color-primary: #005b5e;
+  --color-primary-foreground: #ffffff;
+  --color-ring: #005b5e;
+
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+  --color-border: #e5e7eb;
+  --color-input: #e5e7eb;
+  --color-background: #ffffff;
+  --color-foreground: #111827;
+  --color-card: #ffffff;
+  --color-card-foreground: #111827;
+  --color-accent: #f3f4f6;
+  --color-accent-foreground: #111827;
+
+  /* Paleta blue remapeada para as cores da marca.
+     Todos os blue-* no app herdam automaticamente. */
+  --color-blue-50:  #edfaf7;
+  --color-blue-100: #ccf2e8;
+  --color-blue-200: #99e5d1;
+  --color-blue-300: #4dd6b4;
+  --color-blue-400: #00c993;
+  --color-blue-500: #00a87c;
+  --color-blue-600: #007c6f;
+  --color-blue-700: #005b5e;
+  --color-blue-800: #004449;
+  --color-blue-900: #002e31;
+  --color-blue-950: #001a1c;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
