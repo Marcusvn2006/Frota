@@ -12,6 +12,8 @@ import {
   HardDrive,
   UserRound,
   CalendarClock,
+  BarChart2,
+  ImageIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LogoutButton } from "@/components/LogoutButton";
@@ -334,7 +336,7 @@ export default async function HomePage() {
           {isGestor ? (
             <Link
               href="/gestor/veiculos"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
             >
               <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Car className="w-4 h-4 text-purple-700" />
@@ -350,7 +352,7 @@ export default async function HomePage() {
           ) : (
             <Link
               href="/manutencao"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
             >
               <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
                 <Car className="w-4 h-4 text-gray-600" />
@@ -365,15 +367,15 @@ export default async function HomePage() {
 
           {isGestor && (
             <Link
-              href="/gestor/motoristas"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
+              href="/gestor/relatorios"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
             >
-              <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <UserRound className="w-4 h-4 text-indigo-700" />
+              <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                <BarChart2 className="w-4 h-4 text-blue-700" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Motoristas</p>
-                <p className="text-xs text-gray-500">Cadastro e CNH</p>
+                <p className="text-sm font-medium text-gray-900">Relatórios</p>
+                <p className="text-xs text-gray-500">Consumo, km e abastecimento</p>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>
@@ -381,15 +383,15 @@ export default async function HomePage() {
 
           {isGestor && (
             <Link
-              href="/gestor/vencimentos"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
+              href="/galeria"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
             >
-              <div className="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center">
-                <CalendarClock className="w-4 h-4 text-orange-700" />
+              <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
+                <ImageIcon className="w-4 h-4 text-gray-600" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Vencimentos</p>
-                <p className="text-xs text-gray-500">CNH, IPVA, seguro e mais</p>
+                <p className="text-sm font-medium text-gray-900">Galeria</p>
+                <p className="text-xs text-gray-500">Fotos das vistorias</p>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>
