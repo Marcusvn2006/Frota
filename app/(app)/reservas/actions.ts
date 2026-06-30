@@ -88,7 +88,8 @@ export async function criarReservaAction(
   );
 
   revalidatePath("/reservas");
-  redirect("/reservas");
+  revalidatePath("/minhas-reservas");
+  return { success: "Solicitação enviada! Aguarde a aprovação do gestor." };
 }
 
 // ─── Gestor cria reserva diretamente (aprovada, com veículo) ─────────────────

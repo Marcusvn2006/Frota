@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { ArrowLeft, CalendarSearch } from "lucide-react";
+import { ArrowLeft, CalendarSearch, CheckCircle, BookUser } from "lucide-react";
 import { criarReservaAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,34 @@ function localOffset(minutes: number): string {
 export function NovaReservaForm({ nomeInicial }: { nomeInicial: string }) {
   const [state, formAction] = useActionState(criarReservaAction, null);
   const [motorista, setMotorista] = useState(nomeInicial);
+
+  if (state?.success) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-2xl mx-auto px-4 pt-16 pb-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-7 h-7 text-green-600" />
+            </div>
+            <h1 className="text-lg font-bold text-gray-900">Solicitação enviada!</h1>
+            <p className="text-sm text-gray-500 mt-1.5">{state.success}</p>
+
+            <div className="flex flex-col gap-2 mt-6">
+              <Button asChild size="lg" className="w-full">
+                <Link href="/minhas-reservas">
+                  <BookUser className="w-4 h-4" />
+                  Ver minhas reservas
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="w-full">
+                <Link href="/reservas/nova">Solicitar outra reserva</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
