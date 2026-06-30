@@ -3,10 +3,9 @@
 @theme inline {
   --font-sans: var(--font-geist);
 
-  /* Marca Ervas Finas */
-  --color-primary: #005b5e;
+  --color-primary: #1d4ed8;
   --color-primary-foreground: #ffffff;
-  --color-ring: #005b5e;
+  --color-ring: #1d4ed8;
 
   --color-destructive: #dc2626;
   --color-destructive-foreground: #ffffff;
@@ -21,19 +20,17 @@
   --color-accent: #f3f4f6;
   --color-accent-foreground: #111827;
 
-  /* Paleta blue remapeada para as cores da marca.
-     Todos os blue-* no app herdam automaticamente. */
-  --color-blue-50:  #edfaf7;
-  --color-blue-100: #ccf2e8;
-  --color-blue-200: #99e5d1;
-  --color-blue-300: #4dd6b4;
-  --color-blue-400: #00c993;
-  --color-blue-500: #00a87c;
-  --color-blue-600: #007c6f;
-  --color-blue-700: #005b5e;
-  --color-blue-800: #004449;
-  --color-blue-900: #002e31;
-  --color-blue-950: #001a1c;
+  --color-blue-50:  #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+  --color-blue-950: #172554;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
