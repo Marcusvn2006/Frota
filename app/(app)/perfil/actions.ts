@@ -18,7 +18,7 @@ function vazioParaNull(v: FormDataEntryValue | null): string | null {
 const perfilSchema = z.object({
   cnh_numero: z.string().nullable(),
   cnh_categoria: z.string().nullable(),
-  cnh_validade: z.string().nullable(),
+  cnh_validade: z.string().min(1, "Informe a validade da CNH"),
 });
 
 export async function salvarPerfilAction(
@@ -34,7 +34,7 @@ export async function salvarPerfilAction(
   const parsed = perfilSchema.safeParse({
     cnh_numero: vazioParaNull(formData.get("cnh_numero")),
     cnh_categoria: vazioParaNull(formData.get("cnh_categoria")),
-    cnh_validade: vazioParaNull(formData.get("cnh_validade")),
+    cnh_validade: (formData.get("cnh_validade") as string | null)?.trim() ?? "",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };

@@ -90,8 +90,8 @@ function PerfilForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cnh_validade">Validade da CNH</Label>
-              <Input id="cnh_validade" name="cnh_validade" type="date" />
+              <Label htmlFor="cnh_validade">Validade da CNH <span className="text-red-500">*</span></Label>
+              <Input id="cnh_validade" name="cnh_validade" type="date" required />
             </div>
 
             <SubmitButton />
