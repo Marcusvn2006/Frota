@@ -29,11 +29,13 @@ export async function GET(request: NextRequest) {
   const hoje = hojeBRT();
   const limite = somaDias(hoje, 30);
 
+  // Sem limite inferior: itens vencidos (data_vencimento < hoje) continuam
+  // sendo processados enquanto não forem resolvidos, para o lembrete
+  // semanal de atraso (ver JANELAS_DIAS / verificação de dias < 0 abaixo).
   const { data: vencimentos, error: vencimentosError } = await admin
     .from("vencimentos")
     .select("id, entidade_tipo, entidade_id, tipo, data_vencimento")
     .eq("resolvido", false)
-    .gte("data_vencimento", hoje)
     .lte("data_vencimento", limite);
 
   if (vencimentosError) {
@@ -78,7 +80,12 @@ export async function GET(request: NextRequest) {
 
   for (const v of vencimentos) {
     const dias = diferencaDias(v.data_vencimento, hoje);
-    if (!JANELAS_DIAS.includes(dias as (typeof JANELAS_DIAS)[number])) continue;
+    // Antes do vencimento: janelas fixas (30/15/7/1/0 dias antes).
+    // Depois do vencimento: lembrete recorrente a cada 7 dias de atraso
+    // (-7, -14, -21, ...), enquanto não for marcado como resolvido.
+    const naJanelaFixa = JANELAS_DIAS.includes(dias as (typeof JANELAS_DIAS)[number]);
+    const naJanelaAtraso = dias < 0 && dias % 7 === 0;
+    if (!naJanelaFixa && !naJanelaAtraso) continue;
     if (jaEnviado.has(`${v.id}:${dias}`)) continue;
     if (!destinatarios.length) continue;
 

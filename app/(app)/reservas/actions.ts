@@ -163,7 +163,18 @@ export async function criarReservaGestorAction(
     .select("id")
     .single();
 
-  if (error || !reserva) return { error: "Erro ao criar reserva. Tente novamente." };
+  if (error || !reserva) {
+    // 23P01 = exclusion_violation — a trava do banco (migration 005) impede
+    // duas reservas aprovadas sobrepostas para o mesmo veículo, mesmo com
+    // forcar=1. Não é um erro genérico: o conflito é real e definitivo.
+    if (error?.code === "23P01") {
+      return {
+        error:
+          "Não é possível: este veículo já tem outra reserva aprovada que conflita com este período. Cancele ou altere a reserva conflitante primeiro.",
+      };
+    }
+    return { error: "Erro ao criar reserva. Tente novamente." };
+  }
 
   await supabase.from("reserva_destinos").insert(
     destinos.map((d, i) => ({ reserva_id: reserva.id, destino: d, ordem: i + 1 }))
@@ -229,7 +240,17 @@ export async function aprovarReservaAction(
     .update({ status: "aprovada", veiculo_id, motorista_id: novoMotoristaId })
     .eq("id", id);
 
-  if (error) return { error: "Erro ao aprovar reserva." };
+  if (error) {
+    // 23P01 = exclusion_violation — mesmo com forcar=1, a trava do banco
+    // (migration 005) impede duas reservas aprovadas sobrepostas.
+    if (error.code === "23P01") {
+      return {
+        error:
+          "Não é possível: este veículo já tem outra reserva aprovada que conflita com este período. Cancele ou altere a reserva conflitante primeiro.",
+      };
+    }
+    return { error: "Erro ao aprovar reserva." };
+  }
 
   revalidatePath("/reservas");
   revalidatePath(`/reservas/${id}`);
