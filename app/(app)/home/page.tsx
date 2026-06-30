@@ -13,10 +13,9 @@ import {
   CalendarClock,
   BarChart2,
   ImageIcon,
-  IdCard,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { LogoutButton } from "@/components/LogoutButton";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { formatBRT } from "@/lib/utils";
 import { hojeBRT, somaDias } from "@/lib/vencimentos";
 import type { StatusReserva } from "@/lib/types/database.types";
@@ -105,7 +104,7 @@ export default async function HomePage() {
               </Badge>
             )}
           </div>
-          <LogoutButton />
+          <ProfileMenu nome={perfil?.nome ?? ""} showPerfilLink={!isGestor} />
         </div>
       </div>
 
@@ -327,23 +326,6 @@ export default async function HomePage() {
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>
           )}
-
-          {!isGestor && (
-            <Link
-              href="/perfil"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
-            >
-              <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
-                <IdCard className="w-4 h-4 text-blue-700" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Meu perfil</p>
-                <p className="text-xs text-gray-500">CNH e dados pessoais</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-            </Link>
-          )}
-
 
           {isGestor ? (
             <Link

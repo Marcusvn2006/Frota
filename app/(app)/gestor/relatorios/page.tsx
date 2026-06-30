@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Car, Fuel, Users, TrendingUp } from "lucide-react";
+import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2 } from "lucide-react";
 
 // ─── Período ─────────────────────────────────────────────────────────────────
 
@@ -213,6 +213,18 @@ export default async function RelatoriosPage({ searchParams }: Props) {
           ))}
         </div>
 
+        {totalViagens === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 py-16 px-6 text-center">
+            <BarChart2 className="w-12 h-12 mx-auto mb-3 text-gray-300 stroke-1" />
+            <p className="font-medium text-gray-700">Nenhum dado neste período</p>
+            <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto">
+              Os relatórios são gerados a partir de reservas aprovadas e
+              vistorias concluídas. Tente um período maior ou aguarde as
+              próximas viagens da frota.
+            </p>
+          </div>
+        ) : (
+          <>
         {/* Resumo */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -384,6 +396,8 @@ export default async function RelatoriosPage({ searchParams }: Props) {
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>
