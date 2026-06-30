@@ -9,7 +9,6 @@ import {
   ArrowRight,
   ClipboardCheck,
   Plus,
-  HardDrive,
   UserRound,
   CalendarClock,
   BarChart2,
@@ -317,21 +316,6 @@ export default async function HomePage() {
             </Link>
           )}
 
-          {isGestor && (
-            <Link
-              href="/gestor/storage"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
-            >
-              <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
-                <HardDrive className="w-4 h-4 text-gray-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Armazenamento</p>
-                <p className="text-xs text-gray-500">Limpar fotos antigas</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-            </Link>
-          )}
 
           {isGestor ? (
             <Link
