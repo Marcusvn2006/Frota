@@ -100,19 +100,19 @@ export async function GET(request: NextRequest) {
       <p>Data de vencimento: <strong>${formatDateOnlyBR(v.data_vencimento)}</strong></p>
     `;
 
-    const { error } = await sendEmail({ to: destinatarios, subject, html });
-
-    if (error) {
-      erros.push(`vencimento ${v.id} (${dias}d): ${error}`);
-      continue;
-    }
-
     const { error: insertError } = await admin
       .from("alertas_enviados")
       .insert({ vencimento_id: v.id, dias_antes: dias });
 
     if (insertError) {
-      erros.push(`vencimento ${v.id} (${dias}d): e-mail enviado mas falhou ao registrar — ${insertError.message}`);
+      erros.push(`vencimento ${v.id} (${dias}d): falhou ao registrar alerta — ${insertError.message}`);
+      continue;
+    }
+
+    const { error } = await sendEmail({ to: destinatarios, subject, html });
+
+    if (error) {
+      erros.push(`vencimento ${v.id} (${dias}d): alerta registrado mas e-mail falhou — ${error}`);
       continue;
     }
 

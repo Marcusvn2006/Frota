@@ -124,7 +124,7 @@ export async function cadastrarAction(
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
   if (signInError) redirect("/login");
 
-  redirect("/home");
+  redirect("/perfil?novo=1");
 }
 
 // ─── Reenviar confirmação de e-mail ──────────────────────────────────────────
