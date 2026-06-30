@@ -2,7 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha"];
+// /nova-senha precisa ser pública: o link de redefinição de senha chega sem
+// sessão ainda (a troca do código por sessão acontece no client, depois que
+// a página carrega). Se não estiver aqui, o proxy redireciona para /login
+// antes da página processar o link.
+const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha", "/nova-senha"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

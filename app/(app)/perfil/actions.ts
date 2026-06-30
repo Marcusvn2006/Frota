@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sincronizarVencimento } from "@/lib/vencimentos";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -46,9 +47,21 @@ export async function salvarPerfilAction(
 
   if (error) return { error: "Erro ao salvar. Tente novamente." };
 
-  await sincronizarVencimento(supabase, "motorista", user.id, "cnh", parsed.data.cnh_validade);
+  // vencimentos é restrita ao gestor por RLS (preocupação operacional interna),
+  // então a sincronização do alerta de CNH precisa do client admin — a posse
+  // já foi validada pelo UPDATE acima (.eq("usuario_id", user.id)).
+  const admin = createAdminClient();
+  const { error: syncError } = await sincronizarVencimento(
+    admin,
+    "motorista",
+    user.id,
+    "cnh",
+    parsed.data.cnh_validade
+  );
+  if (syncError) return { error: "Dados salvos, mas houve um erro ao atualizar o alerta de vencimento." };
 
   revalidatePath("/perfil");
   revalidatePath("/home");
+  revalidatePath("/gestor/vencimentos");
   return { success: "Dados salvos com sucesso." };
 }
