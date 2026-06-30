@@ -66,14 +66,35 @@ export async function criarVeiculoAction(
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { error } = await supabase.from("veiculos").insert(parsed.data);
+  const parsedVencimentos = vencimentosVeiculoSchema.safeParse({
+    ipva_validade: vazioParaNull(formData.get("ipva_validade")),
+    licenciamento_validade: vazioParaNull(formData.get("licenciamento_validade")),
+    revisao_validade: vazioParaNull(formData.get("revisao_validade")),
+    seguro_validade: vazioParaNull(formData.get("seguro_validade")),
+  });
+
+  if (!parsedVencimentos.success) return { error: parsedVencimentos.error.issues[0].message };
+
+  const { data: novoVeiculo, error } = await supabase
+    .from("veiculos")
+    .insert({ ...parsed.data, ...parsedVencimentos.data })
+    .select("id")
+    .single();
 
   if (error) {
     if (error.code === "23505") return { error: "Esta placa já está cadastrada." };
     return { error: "Erro ao cadastrar veículo. Tente novamente." };
   }
 
+  await Promise.all([
+    sincronizarVencimento(supabase, "veiculo", novoVeiculo.id, "ipva", parsedVencimentos.data.ipva_validade),
+    sincronizarVencimento(supabase, "veiculo", novoVeiculo.id, "licenciamento", parsedVencimentos.data.licenciamento_validade),
+    sincronizarVencimento(supabase, "veiculo", novoVeiculo.id, "revisao", parsedVencimentos.data.revisao_validade),
+    sincronizarVencimento(supabase, "veiculo", novoVeiculo.id, "seguro", parsedVencimentos.data.seguro_validade),
+  ]);
+
   revalidatePath("/gestor/veiculos");
+  revalidatePath("/gestor/vencimentos");
   redirect("/gestor/veiculos");
 }
 
