@@ -7,6 +7,13 @@ const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha"];
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Rotas de API cuidam da própria autenticação (ex.: CRON_SECRET no cron
+  // de vencimentos, ou simplesmente nenhuma, como /api/health). O redirect
+  // para /login abaixo não se aplica a chamadas de API.
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   });

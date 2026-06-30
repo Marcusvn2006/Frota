@@ -10,10 +10,13 @@ import {
   ClipboardCheck,
   Plus,
   HardDrive,
+  UserRound,
+  CalendarClock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LogoutButton } from "@/components/LogoutButton";
 import { formatBRT } from "@/lib/utils";
+import { hojeBRT, somaDias } from "@/lib/vencimentos";
 import type { StatusReserva } from "@/lib/types/database.types";
 
 type ReservaProxima = {
@@ -67,14 +70,23 @@ export default async function HomePage() {
 
   const minhasReservas = (minhasReservasRaw ?? []) as unknown as ReservaProxima[];
 
-  // For gestor: count pending approvals
+  // For gestor: count pending approvals and vencimentos próximos
   let pendentesCount = 0;
+  let vencimentosCount = 0;
   if (isGestor) {
-    const { count } = await supabase
-      .from("reservas")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pendente");
-    pendentesCount = count ?? 0;
+    const [{ count: pendCount }, { count: vencCount }] = await Promise.all([
+      supabase
+        .from("reservas")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pendente"),
+      supabase
+        .from("vencimentos")
+        .select("id", { count: "exact", head: true })
+        .eq("resolvido", false)
+        .lte("data_vencimento", somaDias(hojeBRT(), 30)),
+    ]);
+    pendentesCount = pendCount ?? 0;
+    vencimentosCount = vencCount ?? 0;
   }
 
   return (
@@ -152,6 +164,22 @@ export default async function HomePage() {
               {comAtencao > 1 ? "m" : ""} de atenção
             </p>
           </div>
+        )}
+
+        {isGestor && vencimentosCount > 0 && (
+          <Link
+            href="/gestor/vencimentos"
+            className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl p-3 hover:bg-orange-100 transition-colors"
+          >
+            <CalendarClock className="w-5 h-5 text-orange-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-orange-800">
+                {vencimentosCount} vencimento{vencimentosCount > 1 ? "s" : ""} nos
+                próximos 30 dias
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-orange-600 shrink-0" />
+          </Link>
         )}
 
         {/* Próximas reservas do usuário */}
@@ -330,6 +358,38 @@ export default async function HomePage() {
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Frota</p>
                 <p className="text-xs text-gray-500">Situação dos veículos</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          )}
+
+          {isGestor && (
+            <Link
+              href="/gestor/motoristas"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
+            >
+              <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <UserRound className="w-4 h-4 text-indigo-700" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Motoristas</p>
+                <p className="text-xs text-gray-500">Cadastro e CNH</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          )}
+
+          {isGestor && (
+            <Link
+              href="/gestor/vencimentos"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-t border-gray-100"
+            >
+              <div className="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center">
+                <CalendarClock className="w-4 h-4 text-orange-700" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Vencimentos</p>
+                <p className="text-xs text-gray-500">CNH, IPVA, seguro e mais</p>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>

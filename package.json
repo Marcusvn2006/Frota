@@ -31,6 +31,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.78.0",
+    "resend": "^6.16.0",
     "serwist": "^9.5.11",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
