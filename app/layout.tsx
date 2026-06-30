@@ -5,12 +5,12 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "ReservarCarro",
+  title: "Frota",
   description: "Sistema de reserva e controle de frota",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "ReservarCarro",
+    title: "Frota",
   },
   manifest: "/manifest.webmanifest",
 };

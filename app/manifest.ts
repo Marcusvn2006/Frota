@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ReservarCarro — Controle de Frota",
-    short_name: "ReservarCarro",
+    name: "Frota — Controle de Frota",
+    short_name: "Frota",
     description: "Sistema de reserva e vistoria de veículos",
     start_url: "/home",
     display: "standalone",

@@ -6,7 +6,7 @@ export default function NotFound() {
       <p className="text-6xl font-black text-gray-200">404</p>
       <h1 className="text-xl font-bold text-gray-900 mt-3">Página não encontrada</h1>
       <p className="text-sm text-gray-500 mt-1">
-        O link pode ter expirado ou a página foi removida.
+        O link pode ter expirado.
       </p>
       <Link
         href="/home"
