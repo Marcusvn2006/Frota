@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CalendarClock, AlertTriangle, CheckCircle, Car, UserRound, RotateCcw } from "lucide-react";
+import { CalendarClock, AlertTriangle, CheckCircle, Car, UserRound, RotateCcw, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateOnlyBR } from "@/lib/utils";
 import { TIPO_LABEL, hojeBRT, diferencaDias, urgenciaVencimento, descricaoPrazo } from "@/lib/vencimentos";
@@ -201,6 +201,18 @@ export default async function VencimentosPage({ searchParams }: Props) {
                         {descricaoPrazo(dias)}
                       </Badge>
                     )}
+
+                    <Link
+                      href={
+                        v.entidade_tipo === "veiculo"
+                          ? `/gestor/veiculos/${v.entidade_id}/editar`
+                          : `/gestor/motoristas/${v.entidade_id}/editar`
+                      }
+                      className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 underline underline-offset-2"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Atualizar data
+                    </Link>
 
                     {v.resolvido ? (
                       <form action={reabrirVencimentoAction.bind(null, v.id)}>
