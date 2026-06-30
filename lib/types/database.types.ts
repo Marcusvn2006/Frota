@@ -3,6 +3,13 @@ export type StatusReserva = "pendente" | "aprovada" | "recusada" | "concluida";
 export type OrigemReserva = "solicitacao" | "gestor";
 export type StatusChecklist = "em_andamento" | "concluido";
 export type TipoFoto = "painel_saida" | "painel_chegada" | "cupom";
+export type EntidadeVencimento = "veiculo" | "motorista";
+export type TipoVencimento =
+  | "cnh"
+  | "ipva"
+  | "licenciamento"
+  | "revisao"
+  | "seguro";
 
 export interface Database {
   public: {
@@ -34,6 +41,10 @@ export interface Database {
           em_manutencao: boolean;
           manutencao_motivo: string | null;
           precisa_atencao: boolean;
+          ipva_validade: string | null;
+          licenciamento_validade: string | null;
+          revisao_validade: string | null;
+          seguro_validade: string | null;
         };
         Insert: {
           id?: string;
@@ -43,6 +54,10 @@ export interface Database {
           em_manutencao?: boolean;
           manutencao_motivo?: string | null;
           precisa_atencao?: boolean;
+          ipva_validade?: string | null;
+          licenciamento_validade?: string | null;
+          revisao_validade?: string | null;
+          seguro_validade?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["veiculos"]["Insert"]>;
         Relationships: [];
@@ -88,6 +103,13 @@ export interface Database {
             columns: ["veiculo_id"];
             isOneToOne: false;
             referencedRelation: "veiculos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reservas_motorista_id_fkey";
+            columns: ["motorista_id"];
+            isOneToOne: false;
+            referencedRelation: "motoristas";
             referencedColumns: ["id"];
           },
         ];
@@ -190,6 +212,7 @@ export interface Database {
           tipo: TipoFoto;
           url: string;
           tirada_em: string;
+          created_at: string;
         };
         Insert: {
           id?: string;
@@ -198,6 +221,7 @@ export interface Database {
           tipo: TipoFoto;
           url: string;
           tirada_em?: string;
+          created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["fotos"]["Insert"]>;
         Relationships: [
@@ -217,6 +241,119 @@ export interface Database {
           },
         ];
       };
+      empresas: {
+        Row: {
+          id: string;
+          nome: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          nome: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["empresas"]["Insert"]>;
+        Relationships: [];
+      };
+      motoristas: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          nome: string;
+          cnh_numero: string | null;
+          cnh_categoria: string | null;
+          cnh_validade: string | null;
+          usuario_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          nome: string;
+          cnh_numero?: string | null;
+          cnh_categoria?: string | null;
+          cnh_validade?: string | null;
+          usuario_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["motoristas"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "motoristas_empresa_id_fkey";
+            columns: ["empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "empresas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "motoristas_usuario_id_fkey";
+            columns: ["usuario_id"];
+            isOneToOne: false;
+            referencedRelation: "usuarios";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      vencimentos: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          entidade_tipo: EntidadeVencimento;
+          entidade_id: string;
+          tipo: TipoVencimento;
+          data_vencimento: string;
+          resolvido: boolean;
+          observacao: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          entidade_tipo: EntidadeVencimento;
+          entidade_id: string;
+          tipo: TipoVencimento;
+          data_vencimento: string;
+          resolvido?: boolean;
+          observacao?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["vencimentos"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "vencimentos_empresa_id_fkey";
+            columns: ["empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "empresas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      alertas_enviados: {
+        Row: {
+          id: string;
+          vencimento_id: string;
+          dias_antes: number;
+          enviado_em: string;
+        };
+        Insert: {
+          id?: string;
+          vencimento_id: string;
+          dias_antes: number;
+          enviado_em?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["alertas_enviados"]["Insert"]
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "alertas_enviados_vencimento_id_fkey";
+            columns: ["vencimento_id"];
+            isOneToOne: false;
+            referencedRelation: "vencimentos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -226,6 +363,8 @@ export interface Database {
       origem_reserva: OrigemReserva;
       status_checklist: StatusChecklist;
       tipo_foto: TipoFoto;
+      entidade_vencimento: EntidadeVencimento;
+      tipo_vencimento: TipoVencimento;
     };
   };
 }
@@ -244,6 +383,13 @@ export type Checklist =
 export type ChecklistItem =
   Database["public"]["Tables"]["checklist_itens"]["Row"];
 export type Foto = Database["public"]["Tables"]["fotos"]["Row"];
+export type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
+export type Motorista =
+  Database["public"]["Tables"]["motoristas"]["Row"];
+export type Vencimento =
+  Database["public"]["Tables"]["vencimentos"]["Row"];
+export type AlertaEnviado =
+  Database["public"]["Tables"]["alertas_enviados"]["Row"];
 
 // Extended types with relations
 export type ReservaComDetalhes = Reserva & {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Car, ImageIcon, BookUser, CalendarSearch, BarChart2 } from "lucide-react";
+import { Home, Calendar, Car, BookUser, CalendarSearch, BarChart2, UserRound, CalendarClock } from "lucide-react";
 import { useUsuario } from "@/hooks/useUsuario";
 import { cn } from "@/lib/utils";
 
@@ -17,9 +17,9 @@ const navFuncionario = [
 const navGestor = [
   { href: "/home", icon: Home, label: "Início" },
   { href: "/reservas", icon: Calendar, label: "Reservas" },
-  { href: "/gestor/relatorios", icon: BarChart2, label: "Relatórios" },
-  { href: "/galeria", icon: ImageIcon, label: "Galeria" },
   { href: "/gestor/veiculos", icon: Car, label: "Veículos" },
+  { href: "/gestor/motoristas", icon: UserRound, label: "Motoristas" },
+  { href: "/gestor/vencimentos", icon: CalendarClock, label: "Vencimentos" },
 ];
 
 const ROUTE_PARENT: Record<string, string> = {

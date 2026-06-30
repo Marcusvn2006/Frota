@@ -84,6 +84,48 @@ export function VeiculoEditForm({ veiculo }: { veiculo: Veiculo }) {
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+          <div className="space-y-1.5">
+            <Label htmlFor="ipva_validade">Vencimento do IPVA</Label>
+            <Input
+              id="ipva_validade"
+              name="ipva_validade"
+              type="date"
+              defaultValue={veiculo.ipva_validade ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="licenciamento_validade">Vencimento do licenciamento</Label>
+            <Input
+              id="licenciamento_validade"
+              name="licenciamento_validade"
+              type="date"
+              defaultValue={veiculo.licenciamento_validade ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="revisao_validade">Próxima revisão</Label>
+            <Input
+              id="revisao_validade"
+              name="revisao_validade"
+              type="date"
+              defaultValue={veiculo.revisao_validade ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="seguro_validade">Vencimento do seguro</Label>
+            <Input
+              id="seguro_validade"
+              name="seguro_validade"
+              type="date"
+              defaultValue={veiculo.seguro_validade ?? ""}
+            />
+          </div>
+        </div>
+
         <SubmitBtn label="Salvar alterações" pending_label="Salvando..." />
       </form>
     </div>

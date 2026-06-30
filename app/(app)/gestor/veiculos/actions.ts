@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { sincronizarVencimento } from "@/lib/vencimentos";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -26,6 +27,11 @@ async function getGestorClient() {
   return data?.papel === "gestor" ? supabase : null;
 }
 
+function vazioParaNull(v: FormDataEntryValue | null): string | null {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s || null;
+}
+
 const veiculoSchema = z.object({
   modelo: z.string().min(2, "Modelo deve ter pelo menos 2 caracteres"),
   cor: z.string().min(2, "Cor deve ter pelo menos 2 caracteres"),
@@ -34,6 +40,13 @@ const veiculoSchema = z.object({
     .min(7, "Placa deve ter 7 ou 8 caracteres")
     .max(8, "Placa deve ter 7 ou 8 caracteres")
     .transform((v) => v.toUpperCase().replace(/\s/g, "")),
+});
+
+const vencimentosVeiculoSchema = z.object({
+  ipva_validade: z.string().nullable(),
+  licenciamento_validade: z.string().nullable(),
+  revisao_validade: z.string().nullable(),
+  seguro_validade: z.string().nullable(),
 });
 
 // ─── Criar ───────────────────────────────────────────────────────────────────
@@ -82,9 +95,18 @@ export async function editarVeiculoAction(
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  const parsedVencimentos = vencimentosVeiculoSchema.safeParse({
+    ipva_validade: vazioParaNull(formData.get("ipva_validade")),
+    licenciamento_validade: vazioParaNull(formData.get("licenciamento_validade")),
+    revisao_validade: vazioParaNull(formData.get("revisao_validade")),
+    seguro_validade: vazioParaNull(formData.get("seguro_validade")),
+  });
+
+  if (!parsedVencimentos.success) return { error: parsedVencimentos.error.issues[0].message };
+
   const { error } = await supabase
     .from("veiculos")
-    .update(parsed.data)
+    .update({ ...parsed.data, ...parsedVencimentos.data })
     .eq("id", id);
 
   if (error) {
@@ -92,8 +114,16 @@ export async function editarVeiculoAction(
     return { error: "Erro ao atualizar veículo." };
   }
 
+  await Promise.all([
+    sincronizarVencimento(supabase, "veiculo", id, "ipva", parsedVencimentos.data.ipva_validade),
+    sincronizarVencimento(supabase, "veiculo", id, "licenciamento", parsedVencimentos.data.licenciamento_validade),
+    sincronizarVencimento(supabase, "veiculo", id, "revisao", parsedVencimentos.data.revisao_validade),
+    sincronizarVencimento(supabase, "veiculo", id, "seguro", parsedVencimentos.data.seguro_validade),
+  ]);
+
   revalidatePath("/gestor/veiculos");
   revalidatePath(`/gestor/veiculos/${id}/editar`);
+  revalidatePath("/gestor/vencimentos");
   return { success: "Veículo atualizado com sucesso." };
 }
 
