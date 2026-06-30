@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
 import { salvarPerfilAction } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,12 @@ function PerfilForm() {
   const searchParams = useSearchParams();
   const novo = searchParams.get("novo") === "1";
   const router = useRouter();
+
+  useEffect(() => {
+    if (state?.success && novo) {
+      router.push("/home");
+    }
+  }, [state, novo, router]);
 
   return (
     <div className="min-h-screen bg-gray-50">
