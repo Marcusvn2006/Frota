@@ -11,7 +11,7 @@ const navFuncionario = [
   { href: "/reservas", icon: Calendar, label: "Reservas" },
   { href: "/minhas-reservas", icon: BookUser, label: "Minhas" },
   { href: "/veiculos/disponibilidade", icon: CalendarSearch, label: "Disponível" },
-  { href: "/manutencao", icon: Car, label: "Veículos" },
+  { href: "/manutencao", icon: Car, label: "Frota" },
 ];
 
 const navGestor = [
@@ -36,11 +36,26 @@ function resolveParent(path: string): string {
   return path;
 }
 
+function NavbarSkeleton() {
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-inset-bottom">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-0.5 flex-1 py-2">
+            <div className="w-5 h-5 rounded bg-gray-200 animate-pulse" />
+            <div className="w-8 h-2 rounded bg-gray-200 animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const { isGestor, loading } = useUsuario();
 
-  if (loading) return null;
+  if (loading) return <NavbarSkeleton />;
 
   const items = isGestor ? navGestor : navFuncionario;
   const effectivePath = resolveParent(pathname);

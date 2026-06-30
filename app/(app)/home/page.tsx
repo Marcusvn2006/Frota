@@ -13,10 +13,9 @@ import {
   CalendarClock,
   BarChart2,
   ImageIcon,
-  IdCard,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { LogoutButton } from "@/components/LogoutButton";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { formatBRT } from "@/lib/utils";
 import { hojeBRT, somaDias } from "@/lib/vencimentos";
 import type { StatusReserva } from "@/lib/types/database.types";
@@ -105,31 +104,40 @@ export default async function HomePage() {
               </Badge>
             )}
           </div>
-          <LogoutButton />
+          <ProfileMenu nome={perfil?.nome ?? ""} showPerfilLink={!isGestor} />
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 -mt-4 pb-28 space-y-4">
         {/* Resumo da frota */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=disponiveis" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-green-600">{disponiveis}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Disponíveis
             </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          </Link>
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=manutencao" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-red-600">{emManutencao}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Manutenção
             </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          </Link>
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=atencao" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-yellow-600">{comAtencao}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Atenção
             </p>
-          </div>
+          </Link>
         </div>
 
         {/* Alertas */}
@@ -272,7 +280,7 @@ export default async function HomePage() {
           </h2>
 
           <Link
-            href="/reservas/nova"
+            href={isGestor ? "/gestor/reservas/nova" : "/reservas/nova"}
             className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
           >
             <div className="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center">
@@ -280,9 +288,11 @@ export default async function HomePage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
-                Solicitar reserva
+                {isGestor ? "Criar reserva" : "Solicitar reserva"}
               </p>
-              <p className="text-xs text-gray-500">Agendar uso de veículo</p>
+              <p className="text-xs text-gray-500">
+                {isGestor ? "Reservar veículo diretamente" : "Agendar uso de veículo"}
+              </p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400" />
           </Link>
@@ -316,23 +326,6 @@ export default async function HomePage() {
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>
           )}
-
-          {!isGestor && (
-            <Link
-              href="/perfil"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
-            >
-              <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
-                <IdCard className="w-4 h-4 text-blue-700" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Meu perfil</p>
-                <p className="text-xs text-gray-500">CNH e dados pessoais</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-            </Link>
-          )}
-
 
           {isGestor ? (
             <Link

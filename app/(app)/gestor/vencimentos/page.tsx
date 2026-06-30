@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CalendarClock, AlertTriangle, CheckCircle, Car, UserRound, RotateCcw, Pencil } from "lucide-react";
+import { CalendarClock, AlertTriangle, CheckCircle, Car, UserRound, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateOnlyBR } from "@/lib/utils";
 import { TIPO_LABEL, hojeBRT, diferencaDias, urgenciaVencimento, descricaoPrazo } from "@/lib/vencimentos";
 import type { TipoVencimento } from "@/lib/types/database.types";
 import { resolverVencimentoAction, reabrirVencimentoAction } from "./actions";
+import { AtualizarDataButton } from "./AtualizarDataButton";
 
 const STATUS_OPTIONS = ["pendentes", "resolvidos", "todos"] as const;
 type StatusFiltro = (typeof STATUS_OPTIONS)[number];
@@ -202,17 +203,14 @@ export default async function VencimentosPage({ searchParams }: Props) {
                       </Badge>
                     )}
 
-                    <Link
-                      href={
-                        v.entidade_tipo === "veiculo"
-                          ? `/gestor/veiculos/${v.entidade_id}/editar`
-                          : `/gestor/motoristas/${v.entidade_id}/editar`
-                      }
-                      className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 underline underline-offset-2"
-                    >
-                      <Pencil className="w-3 h-3" />
-                      Atualizar data
-                    </Link>
+                    <AtualizarDataButton
+                      entidadeTipo={v.entidade_tipo}
+                      entidadeId={v.entidade_id}
+                      tipo={v.tipo}
+                      tipoLabel={TIPO_LABEL[v.tipo]}
+                      entidadeNome={entidadeNome}
+                      dataAtual={v.data_vencimento}
+                    />
 
                     {v.resolvido ? (
                       <form action={reabrirVencimentoAction.bind(null, v.id)}>
