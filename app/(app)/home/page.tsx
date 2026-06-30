@@ -306,8 +306,8 @@ export default async function HomePage() {
               href="/veiculos/disponibilidade"
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
             >
-              <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-                <Car className="w-4 h-4 text-green-700" />
+              <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Car className="w-4 h-4 text-blue-700" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Disponibilidade</p>
