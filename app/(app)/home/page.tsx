@@ -272,7 +272,7 @@ export default async function HomePage() {
           </h2>
 
           <Link
-            href="/reservas/nova"
+            href={isGestor ? "/gestor/reservas/nova" : "/reservas/nova"}
             className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
           >
             <div className="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center">
@@ -280,9 +280,11 @@ export default async function HomePage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
-                Solicitar reserva
+                {isGestor ? "Criar reserva" : "Solicitar reserva"}
               </p>
-              <p className="text-xs text-gray-500">Agendar uso de veículo</p>
+              <p className="text-xs text-gray-500">
+                {isGestor ? "Reservar veículo diretamente" : "Agendar uso de veículo"}
+              </p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400" />
           </Link>

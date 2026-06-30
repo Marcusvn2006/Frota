@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Clock, Car, Calendar, XCircle } from "lucide-react";
+import { Plus, Clock, Car, Calendar, XCircle, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatBRT } from "@/lib/utils";
@@ -179,12 +179,15 @@ export default async function MinhasReservasPage() {
                       </div>
                     )}
                     {destinos[0] && (
-                      <p className="text-xs text-gray-500 truncate">
-                        📍 {destinos[0].destino}
-                        {destinos.length > 1
-                          ? ` +${destinos.length - 1}`
-                          : ""}
-                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span className="truncate">
+                          {destinos[0].destino}
+                          {destinos.length > 1
+                            ? ` +${destinos.length - 1}`
+                            : ""}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </Link>
@@ -233,12 +236,15 @@ export default async function MinhasReservasPage() {
                       </span>
                     </div>
                     {destinos[0] && (
-                      <p className="text-xs text-gray-500 truncate">
-                        📍 {destinos[0].destino}
-                        {destinos.length > 1
-                          ? ` +${destinos.length - 1}`
-                          : ""}
-                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span className="truncate">
+                          {destinos[0].destino}
+                          {destinos.length > 1
+                            ? ` +${destinos.length - 1}`
+                            : ""}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </Link>
@@ -299,12 +305,15 @@ export default async function MinhasReservasPage() {
                       </div>
                     )}
                     {destinos[0] && (
-                      <p className="text-xs text-gray-500 truncate">
-                        📍 {destinos[0].destino}
-                        {destinos.length > 1
-                          ? ` +${destinos.length - 1}`
-                          : ""}
-                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span className="truncate">
+                          {destinos[0].destino}
+                          {destinos.length > 1
+                            ? ` +${destinos.length - 1}`
+                            : ""}
+                        </span>
+                      </div>
                     )}
                     {r.status === "recusada" && r.motivo_recusa && (
                       <div className="flex items-start gap-1.5 mt-1.5 bg-red-50 rounded-md px-2.5 py-1.5">

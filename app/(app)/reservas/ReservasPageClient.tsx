@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CalendarioReservas, type CalendarReserva } from "@/components/CalendarioReservas";
 import { Badge } from "@/components/ui/badge";
 import { formatBRT } from "@/lib/utils";
-import { Clock, Car, CalendarDays, List } from "lucide-react";
+import { Clock, Car, CalendarDays, List, MapPin } from "lucide-react";
 import type { StatusReserva, OrigemReserva } from "@/lib/types/database.types";
 
 type ReservaRow = CalendarReserva & {
@@ -58,12 +58,15 @@ function ReservaCard({ r, isGestor }: { r: ReservaRow; isGestor: boolean }) {
             <span>{r.veiculo.modelo} <span className="font-mono text-xs">{r.veiculo.placa}</span></span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-yellow-600">
+          <div className="flex items-center gap-1.5 text-gray-400">
             <Car className="w-3.5 h-3.5 shrink-0" />
             <span className="text-xs">Veículo a definir</span>
           </div>
         )}
-        <p className="text-xs text-gray-500 truncate">📍 {destino}{maisDestinos}</p>
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <span className="truncate">{destino}{maisDestinos}</span>
+        </div>
       </div>
     </Link>
   );

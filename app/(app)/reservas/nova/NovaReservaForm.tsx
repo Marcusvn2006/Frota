@@ -100,6 +100,10 @@ export function NovaReservaForm({ nomeInicial }: { nomeInicial: string }) {
               <DestinosInput />
             </div>
 
+            <p className="text-xs text-gray-400">
+              O veículo será escolhido pelo gestor ao aprovar a solicitação.
+            </p>
+
             <SubmitButton />
           </form>
         </div>

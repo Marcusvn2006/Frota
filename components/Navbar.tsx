@@ -11,7 +11,7 @@ const navFuncionario = [
   { href: "/reservas", icon: Calendar, label: "Reservas" },
   { href: "/minhas-reservas", icon: BookUser, label: "Minhas" },
   { href: "/veiculos/disponibilidade", icon: CalendarSearch, label: "Disponível" },
-  { href: "/manutencao", icon: Car, label: "Veículos" },
+  { href: "/manutencao", icon: Car, label: "Frota" },
 ];
 
 const navGestor = [

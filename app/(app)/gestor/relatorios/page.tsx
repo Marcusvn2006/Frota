@@ -317,7 +317,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1.5">
                     <div
-                      className="bg-indigo-500 h-1.5 rounded-full transition-all"
+                      className="bg-blue-400 h-1.5 rounded-full transition-all"
                       style={{ width: `${(m.viagens / maxViagens) * 100}%` }}
                     />
                   </div>
@@ -352,7 +352,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1.5">
                     <div
-                      className="bg-green-500 h-1.5 rounded-full transition-all"
+                      className="bg-blue-500 h-1.5 rounded-full transition-all"
                       style={{ width: `${(m.valor / maxMesValor) * 100}%` }}
                     />
                   </div>
