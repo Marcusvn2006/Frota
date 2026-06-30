@@ -5,7 +5,26 @@ import { Plus, Wrench, AlertTriangle, Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export default async function VeiculosPage() {
+const STATUS_OPTIONS = ["todos", "disponiveis", "manutencao", "atencao"] as const;
+type StatusFiltro = (typeof STATUS_OPTIONS)[number];
+
+const STATUS_LABELS: Record<StatusFiltro, string> = {
+  todos: "Todos",
+  disponiveis: "Disponíveis",
+  manutencao: "Manutenção",
+  atencao: "Atenção",
+};
+
+interface Props {
+  searchParams: Promise<{ status?: string }>;
+}
+
+export default async function VeiculosPage({ searchParams }: Props) {
+  const { status: statusParam } = await searchParams;
+  const status: StatusFiltro = STATUS_OPTIONS.includes(statusParam as StatusFiltro)
+    ? (statusParam as StatusFiltro)
+    : "todos";
+
   const supabase = await createClient();
 
   const {
@@ -23,7 +42,7 @@ export default async function VeiculosPage() {
 
   const agora = new Date().toISOString();
 
-  const [{ data: veiculos }, { data: reservasAtivas }] = await Promise.all([
+  const [{ data: veiculosRaw }, { data: reservasAtivas }] = await Promise.all([
     supabase.from("veiculos").select("*").order("modelo"),
     supabase
       .from("reservas")
@@ -37,6 +56,13 @@ export default async function VeiculosPage() {
     (reservasAtivas ?? []).map((r) => [r.veiculo_id, r.motorista])
   );
 
+  const veiculos = (veiculosRaw ?? []).filter((v) => {
+    if (status === "manutencao") return v.em_manutencao;
+    if (status === "atencao") return v.precisa_atencao && !v.em_manutencao;
+    if (status === "disponiveis") return !v.em_manutencao;
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -45,9 +71,9 @@ export default async function VeiculosPage() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">Veículos</h1>
             <p className="text-sm text-gray-500">
-              {veiculos?.length ?? 0} veículo
-              {(veiculos?.length ?? 0) !== 1 ? "s" : ""} cadastrado
-              {(veiculos?.length ?? 0) !== 1 ? "s" : ""}
+              {veiculos.length} veículo
+              {veiculos.length !== 1 ? "s" : ""}
+              {status !== "todos" ? ` · ${STATUS_LABELS[status].toLowerCase()}` : ""}
             </p>
           </div>
           <Button asChild size="sm">
@@ -61,15 +87,34 @@ export default async function VeiculosPage() {
 
       {/* Lista */}
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
-        {(!veiculos || veiculos.length === 0) && (
+        {/* Filtro de status */}
+        <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none]">
+          {STATUS_OPTIONS.map((s) => (
+            <Link
+              key={s}
+              href={s === "todos" ? "/gestor/veiculos" : `/gestor/veiculos?status=${s}`}
+              className={`text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
+                status === s
+                  ? "bg-blue-700 text-white"
+                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {STATUS_LABELS[s]}
+            </Link>
+          ))}
+        </div>
+
+        {veiculos.length === 0 && (
           <div className="text-center py-16 text-gray-400">
             <Car className="w-12 h-12 mx-auto mb-3 stroke-1" />
-            <p className="font-medium">Nenhum veículo cadastrado</p>
+            <p className="font-medium">
+              {status === "todos" ? "Nenhum veículo cadastrado" : "Nenhum veículo nesta categoria"}
+            </p>
             <p className="text-sm mt-1">Adicione o primeiro veículo da frota</p>
           </div>
         )}
 
-        {veiculos?.map((v) => {
+        {veiculos.map((v) => {
           const motorista = emUsoMap.get(v.id);
           const emUso = !v.em_manutencao && !!motorista;
           return (

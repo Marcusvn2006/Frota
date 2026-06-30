@@ -112,24 +112,33 @@ export default async function HomePage() {
       <div className="max-w-2xl mx-auto px-4 -mt-4 pb-28 space-y-4">
         {/* Resumo da frota */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=disponiveis" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-green-600">{disponiveis}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Disponíveis
             </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          </Link>
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=manutencao" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-red-600">{emManutencao}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Manutenção
             </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          </Link>
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=atencao" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-yellow-600">{comAtencao}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Atenção
             </p>
-          </div>
+          </Link>
         </div>
 
         {/* Alertas */}

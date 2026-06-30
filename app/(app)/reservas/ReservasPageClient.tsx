@@ -77,8 +77,11 @@ interface Props {
   isGestor: boolean;
 }
 
+const HISTORICO_PAGE_SIZE = 15;
+
 export function ReservasPageClient({ reservas, isGestor }: Props) {
   const [view, setView] = useState<"calendario" | "lista">("calendario");
+  const [historicoLimite, setHistoricoLimite] = useState(HISTORICO_PAGE_SIZE);
 
   const agora = new Date().toISOString();
   const pendentes = reservas.filter((r) => r.status === "pendente");
@@ -163,7 +166,15 @@ export function ReservasPageClient({ reservas, isGestor }: Props) {
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
                 Histórico ({historico.length})
               </h2>
-              {historico.slice(0, 15).map((r) => <ReservaCard key={r.id} r={r} isGestor={isGestor} />)}
+              {historico.slice(0, historicoLimite).map((r) => <ReservaCard key={r.id} r={r} isGestor={isGestor} />)}
+              {historico.length > historicoLimite && (
+                <button
+                  onClick={() => setHistoricoLimite((l) => l + HISTORICO_PAGE_SIZE)}
+                  className="w-full text-sm text-blue-600 hover:text-blue-800 py-2 font-medium"
+                >
+                  Ver mais ({historico.length - historicoLimite} restantes)
+                </button>
+              )}
             </section>
           )}
           {reservas.length === 0 && (
