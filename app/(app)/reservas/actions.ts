@@ -209,10 +209,13 @@ export async function aprovarReservaAction(
 
   const { data: reserva } = await supabase
     .from("reservas")
-    .select("inicio, fim, motorista, solicitante_id, motorista_id")
+    .select("inicio, fim, motorista, solicitante_id, motorista_id, status")
     .eq("id", id)
     .single();
   if (!reserva) return { error: "Reserva não encontrada." };
+  if (reserva.status !== "pendente") {
+    return { error: "Esta solicitação não está mais pendente e não pode ser aprovada." };
+  }
 
   // Verificar conflito (excluindo a própria reserva)
   const { data: conflitos } = await supabase
@@ -238,7 +241,8 @@ export async function aprovarReservaAction(
   const { error } = await supabase
     .from("reservas")
     .update({ status: "aprovada", veiculo_id, motorista_id: novoMotoristaId })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("status", "pendente");
 
   if (error) {
     // 23P01 = exclusion_violation — mesmo com forcar=1, a trava do banco

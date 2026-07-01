@@ -1,128 +1,29 @@
-"use client";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { PerfilForm } from "./PerfilForm";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Suspense, useEffect } from "react";
-import Link from "next/link";
-import { salvarPerfilAction } from "./actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { CheckCircle, ArrowRight } from "lucide-react";
+export default async function PerfilPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? "Salvando..." : "Salvar"}
-    </Button>
-  );
-}
-
-function PerfilForm() {
-  const [state, formAction] = useActionState(salvarPerfilAction, null);
-  const searchParams = useSearchParams();
-  const novo = searchParams.get("novo") === "1";
-  const router = useRouter();
-
-  useEffect(() => {
-    if (state?.success && novo) {
-      router.push("/home");
-    }
-  }, [state, novo, router]);
+  // Carrega os dados atuais de CNH para pré-preencher o formulário — sem isso,
+  // salvar apenas a validade zerava número e categoria já cadastrados.
+  const { data: motorista } = await supabase
+    .from("motoristas")
+    .select("cnh_numero, cnh_categoria, cnh_validade")
+    .eq("usuario_id", user.id)
+    .single();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-4 pt-10 pb-4">
-        <div className="max-w-2xl mx-auto">
-          {novo ? (
-            <>
-              <h1 className="text-xl font-bold text-gray-900">Bem-vindo!</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Complete seus dados de habilitação para continuar.
-              </p>
-            </>
-          ) : (
-            <h1 className="text-xl font-bold text-gray-900">Meu perfil</h1>
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-gray-900 mb-4">Habilitação (CNH)</h2>
-
-          <form action={formAction} className="space-y-4">
-            {state?.error && (
-              <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200">
-                {state.error}
-              </div>
-            )}
-            {state?.success && (
-              <div className="bg-green-50 text-green-700 text-sm px-4 py-3 rounded-lg border border-green-200 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 shrink-0" />
-                {state.success}
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="cnh_numero">Número da CNH</Label>
-              <Input id="cnh_numero" name="cnh_numero" placeholder="Opcional" />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="cnh_categoria">Categoria</Label>
-              <select
-                id="cnh_categoria"
-                name="cnh_categoria"
-                defaultValue=""
-                className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Selecione (opcional)</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="AB">AB</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-                <option value="E">E</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="cnh_validade">Validade da CNH <span className="text-red-500">*</span></Label>
-              <Input id="cnh_validade" name="cnh_validade" type="date" required />
-            </div>
-
-            <SubmitButton />
-          </form>
-        </div>
-
-        {novo ? (
-          <button
-            onClick={() => router.push("/home")}
-            className="w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors"
-          >
-            Pular por agora
-          </button>
-        ) : (
-          <Link
-            href="/home"
-            className="flex items-center justify-center gap-1 text-sm text-blue-600 hover:underline py-2"
-          >
-            Voltar para o início
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function PerfilPage() {
-  return (
-    <Suspense>
-      <PerfilForm />
-    </Suspense>
+    <PerfilForm
+      inicial={{
+        cnh_numero: motorista?.cnh_numero ?? "",
+        cnh_categoria: motorista?.cnh_categoria ?? "",
+        cnh_validade: motorista?.cnh_validade ?? "",
+      }}
+    />
   );
 }

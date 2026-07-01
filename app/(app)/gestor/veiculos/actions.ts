@@ -32,14 +32,18 @@ function vazioParaNull(v: FormDataEntryValue | null): string | null {
   return s || null;
 }
 
+// AAA0000 (antigo) ou AAA0A00 (Mercosul), após remover espaços/hífens.
+const PLACA_REGEX = /^[A-Z]{3}\d[A-Z0-9]\d{2}$/;
+
 const veiculoSchema = z.object({
   modelo: z.string().min(2, "Modelo deve ter pelo menos 2 caracteres"),
   cor: z.string().min(2, "Cor deve ter pelo menos 2 caracteres"),
   placa: z
     .string()
-    .min(7, "Placa deve ter 7 ou 8 caracteres")
-    .max(8, "Placa deve ter 7 ou 8 caracteres")
-    .transform((v) => v.toUpperCase().replace(/\s/g, "")),
+    .transform((v) => v.toUpperCase().replace(/[\s-]/g, ""))
+    .refine((v) => PLACA_REGEX.test(v), {
+      message: "Placa inválida. Use o formato AAA0000 ou AAA0A00 (Mercosul).",
+    }),
 });
 
 const vencimentosVeiculoSchema = z.object({

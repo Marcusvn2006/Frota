@@ -40,17 +40,19 @@ export async function limparFotosAntigasAction(
     return { deletadas: 0, falhasStorage: 0, timestamp: new Date().toISOString() };
   }
 
-  // Extrai o caminho relativo ao bucket a partir da URL pública
-  const baseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/fotos-vistoria/`;
+  // fotos.url é salvo como caminho relativo ao bucket (ex.:
+  // "<checklistId>/painel_saida_123.jpg"). Versões antigas podem ter
+  // gravado a URL pública inteira — nesse caso, extrai só o caminho.
+  const publicPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/fotos-vistoria/`;
   const paths: string[] = [];
   const ids: string[] = [];
 
   for (const foto of fotos) {
     ids.push(foto.id);
-    const filePath = foto.url.replace(baseUrl, "");
-    if (filePath && filePath !== foto.url) {
-      paths.push(filePath);
-    }
+    const filePath = foto.url.startsWith(publicPrefix)
+      ? foto.url.slice(publicPrefix.length)
+      : foto.url;
+    if (filePath) paths.push(filePath);
   }
 
   // Remove do Storage (em lotes de 100)
