@@ -19,6 +19,15 @@ export const dynamic = "force-dynamic";
 
 const JANELAS_DIAS = [30, 15, 7, 1, 0] as const;
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -101,9 +110,12 @@ export async function GET(request: NextRequest) {
           })();
 
     const label = TIPO_LABEL[v.tipo];
+    // entidadeNome vem de dados livres (nome do motorista, modelo do veículo).
+    // Escapa antes de interpolar no corpo HTML para evitar injeção de markup.
+    const nomeSeguro = escapeHtml(entidadeNome);
     const subject = `[Frota] ${label} de ${entidadeNome} ${descricaoPrazo(dias)}`;
     const html = `
-      <p>${label} de <strong>${entidadeNome}</strong> ${descricaoPrazo(dias)}.</p>
+      <p>${label} de <strong>${nomeSeguro}</strong> ${descricaoPrazo(dias)}.</p>
       <p>Data de vencimento: <strong>${formatDateOnlyBR(v.data_vencimento)}</strong></p>
     `;
 

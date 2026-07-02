@@ -9,10 +9,9 @@ import {
   cancelarPropriaSolicitacaoAction,
 } from "../actions";
 import type { ReservaFormState } from "../actions";
-import type { Veiculo, StatusReserva } from "@/lib/types/database.types";
+import type { Veiculo } from "@/lib/types/database.types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +21,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { AlertTriangle, CheckCircle, Wrench } from "lucide-react";
+import { AlertTriangle, CheckCircle } from "lucide-react";
 
 // ─── Aprovar ──────────────────────────────────────────────────────────────────
 
@@ -71,34 +70,7 @@ export function AprovarSection({
         </div>
       )}
 
-      {/* Conflito — re-submit com forcar=1 */}
-      {state?.conflito ? (
-        <div className="space-y-3">
-          <div className="bg-yellow-50 text-yellow-800 text-sm px-4 py-3 rounded-lg border border-yellow-200 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <p>{state.conflito}</p>
-          </div>
-          <form action={formAction} className="flex gap-2">
-            <input type="hidden" name="veiculo_id" value={selectedId} />
-            <input type="hidden" name="forcar" value="1" />
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => {
-                setSelectedId("");
-                window.location.reload();
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" className="flex-1 bg-yellow-600 hover:bg-yellow-700">
-              Confirmar mesmo assim
-            </Button>
-          </form>
-        </div>
-      ) : (
-        <form action={formAction} className="space-y-3">
+      <form action={formAction} className="space-y-3">
           <div className="space-y-1.5">
             <Label>Selecionar veículo</Label>
             <select
@@ -151,7 +123,6 @@ export function AprovarSection({
 
           <AprovarSubmit label="Aprovar reserva" />
         </form>
-      )}
     </div>
   );
 }

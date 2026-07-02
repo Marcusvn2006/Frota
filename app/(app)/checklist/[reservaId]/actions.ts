@@ -109,21 +109,32 @@ export async function salvarChegadaAction(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch veiculo_id from DB — never trust client-supplied value
+  // Fetch veiculo_id + km_saida from DB — never trust client-supplied value
   const { data: clData } = await supabase
     .from("checklists")
-    .select("reserva:reservas!checklists_reserva_id_fkey(veiculo_id)")
+    .select("km_saida, reserva:reservas!checklists_reserva_id_fkey(veiculo_id)")
     .eq("id", checklistId)
     .single();
   const veiculoId =
     (clData?.reserva as { veiculo_id: string | null } | null)?.veiculo_id ??
     null;
+  const kmSaida = clData?.km_saida ?? null;
 
   const km_chegada = formData.get("km_chegada") as string;
   const hora_chegada = formData.get("hora_chegada") as string;
 
   if (!km_chegada || !hora_chegada) {
     return { error: "Preencha o km e a hora de chegada." };
+  }
+
+  const kmChegadaNum = parseFloat(km_chegada);
+  if (Number.isNaN(kmChegadaNum) || kmChegadaNum < 0) {
+    return { error: "Km de chegada inválido." };
+  }
+  if (kmSaida !== null && kmChegadaNum < kmSaida) {
+    return {
+      error: `O km de chegada (${kmChegadaNum}) não pode ser menor que o de saída (${kmSaida}).`,
+    };
   }
 
   const abasteceu = formData.get("abasteceu") === "1";
@@ -178,7 +189,7 @@ export async function salvarChegadaAction(
   const { error } = await supabase
     .from("checklists")
     .update({
-      km_chegada: parseFloat(km_chegada),
+      km_chegada: kmChegadaNum,
       hora_chegada,
       abasteceu,
       litros,

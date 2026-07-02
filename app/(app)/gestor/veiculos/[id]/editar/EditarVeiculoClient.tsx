@@ -15,8 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlacaInput } from "@/components/PlacaInput";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -74,14 +74,7 @@ export function VeiculoEditForm({ veiculo }: { veiculo: Veiculo }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="placa">Placa</Label>
-          <Input
-            id="placa"
-            name="placa"
-            defaultValue={veiculo.placa}
-            maxLength={8}
-            className="uppercase"
-            required
-          />
+          <PlacaInput defaultValue={veiculo.placa} />
         </div>
 
         <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
