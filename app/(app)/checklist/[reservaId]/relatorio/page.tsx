@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import { formatBRT, formatBRL } from "@/lib/utils";
 import { PrintButton } from "./PrintButton";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 import type { ChecklistItem } from "@/lib/types/database.types";
 
 interface Props {
@@ -42,20 +43,12 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 
 export default async function RelatorioPage({ params }: Props) {
   const { reservaId } = await params;
+
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (perfil?.papel !== "gestor") redirect("/home");
 
   // Fetch reserva with full details
   const { data: reservaRaw } = await supabase

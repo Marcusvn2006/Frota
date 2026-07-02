@@ -8,6 +8,7 @@ import { TIPO_LABEL, hojeBRT, diferencaDias, urgenciaVencimento, descricaoPrazo 
 import type { TipoVencimento } from "@/lib/types/database.types";
 import { resolverVencimentoAction, reabrirVencimentoAction } from "./actions";
 import { AtualizarDataButton } from "./AtualizarDataButton";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 const STATUS_OPTIONS = ["pendentes", "resolvidos", "todos"] as const;
 type StatusFiltro = (typeof STATUS_OPTIONS)[number];
@@ -34,20 +35,11 @@ export default async function VencimentosPage({ searchParams }: Props) {
     ? (tipoParam as TipoFiltro)
     : "todos";
 
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (perfil?.papel !== "gestor") redirect("/home");
 
   let query = supabase
     .from("vencimentos")

@@ -45,17 +45,25 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  // getSession() decodifica o JWT dos cookies localmente, sem ida à rede —
+  // ao contrário de getUser(), que valida contra o servidor do Supabase a
+  // cada chamada. Isso é seguro aqui porque o proxy só decide se redireciona
+  // para /login por UX; ele não é o limite de autorização. Cada página, ao
+  // renderizar, chama getUsuarioAtual() (que usa getUser() de verdade, com
+  // validação de rede) como checagem autoritativa, e o RLS do Postgres
+  // aplica a autorização real em toda query — então uma sessão adulterada ou
+  // revogada não passaria de qualquer forma, só não é pega neste ponto.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  if (!user && !isPublic) {
+  if (!session && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && isPublic) {
+  if (session && isPublic) {
     return NextResponse.redirect(new URL("/home", request.url));
   }
 

@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, Car, MapPin, User, ClipboardCheck, XCircle } from "lu
 import { Badge } from "@/components/ui/badge";
 import { formatBRT } from "@/lib/utils";
 import { AprovarSection, RecusarButton, CancelarButton, CancelarSolicitacaoButton } from "./ReservaAcoesClient";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 import type { StatusReserva, OrigemReserva, Veiculo } from "@/lib/types/database.types";
 
 type VeiculoConflito = Veiculo & { temConflito: boolean };
@@ -36,20 +37,13 @@ interface Props {
 
 export default async function ReservaDetalhePage({ params }: Props) {
   const { id } = await params;
+
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  const { user } = usuarioAtual;
+  const isGestor = usuarioAtual.perfil.papel === "gestor";
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  const isGestor = perfil?.papel === "gestor";
 
   const { data: reservaRaw } = await supabase
     .from("reservas")

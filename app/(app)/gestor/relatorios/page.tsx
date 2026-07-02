@@ -1,8 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2 } from "lucide-react";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 // ─── Período ─────────────────────────────────────────────────────────────────
 
@@ -68,18 +68,9 @@ export default async function RelatoriosPage({ searchParams }: Props) {
   const periodo: Periodo =
     periodoParam && periodoParam in PERIODOS ? (periodoParam as Periodo) : "180d";
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("papel")
-    .eq("id", user.id)
-    .single();
-  if (perfil?.papel !== "gestor") redirect("/home");
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
 
   const admin = createAdminClient();
   const dias = PERIODOS[periodo];

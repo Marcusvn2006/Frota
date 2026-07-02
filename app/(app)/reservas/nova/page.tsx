@@ -1,19 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { NovaReservaForm } from "./NovaReservaForm";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 export default async function NovaReservaPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
 
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  return <NovaReservaForm nomeInicial={perfil?.nome ?? ""} />;
+  return <NovaReservaForm nomeInicial={usuarioAtual.perfil.nome ?? ""} />;
 }

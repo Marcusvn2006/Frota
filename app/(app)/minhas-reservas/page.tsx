@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { formatBRT } from "@/lib/utils";
 import type { StatusReserva } from "@/lib/types/database.types";
 import { HistoricoReservas } from "./HistoricoReservas";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 type MinhaReserva = {
   id: string;
@@ -21,21 +22,14 @@ type MinhaReserva = {
 };
 
 export default async function MinhasReservasPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("papel")
-    .eq("id", user.id)
-    .single();
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  const { user, perfil } = usuarioAtual;
 
   // Gestor acessa o painel completo
-  if (perfil?.papel === "gestor") redirect("/reservas");
+  if (perfil.papel === "gestor") redirect("/reservas");
+
+  const supabase = await createClient();
 
   // UUID não tem espaços — .or() funciona corretamente com UUIDs
   const { data: reservasRaw } = await supabase

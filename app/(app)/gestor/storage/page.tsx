@@ -1,9 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ImageIcon, Clock, Info } from "lucide-react";
 import { LimparStorage } from "./LimparStorage";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 const TIPO_LABEL: Record<string, string> = {
   painel_saida: "Painel de saída",
@@ -12,18 +12,9 @@ const TIPO_LABEL: Record<string, string> = {
 };
 
 export default async function StoragePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("papel")
-    .eq("id", user.id)
-    .single();
-  if (perfil?.papel !== "gestor") redirect("/home");
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
 
   const admin = createAdminClient();
   const agora = new Date();

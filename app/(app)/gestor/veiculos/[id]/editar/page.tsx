@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { VeiculoEditForm, StatusSection, ExcluirSection } from "./EditarVeiculoClient";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -11,20 +12,11 @@ interface Props {
 export default async function EditarVeiculoPage({ params }: Props) {
   const { id } = await params;
 
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (perfil?.papel !== "gestor") redirect("/home");
 
   const { data: veiculo } = await supabase
     .from("veiculos")

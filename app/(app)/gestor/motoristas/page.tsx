@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateOnlyBR } from "@/lib/utils";
 import { hojeBRT, diferencaDias, urgenciaVencimento, descricaoPrazo } from "@/lib/vencimentos";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 const URGENCIA_STYLES: Record<string, string> = {
   vencido: "bg-red-100 text-red-800",
@@ -14,20 +15,11 @@ const URGENCIA_STYLES: Record<string, string> = {
 };
 
 export default async function MotoristasPage() {
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (perfil?.papel !== "gestor") redirect("/home");
 
   const { data: motoristas } = await supabase
     .from("motoristas")

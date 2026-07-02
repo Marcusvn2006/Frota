@@ -1,14 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { hojeBRT, diferencaDias, urgenciaVencimento, descricaoPrazo } from "@/lib/vencimentos";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 import { PerfilForm, type CnhStatus } from "./PerfilForm";
 
 export default async function PerfilPage() {
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  const { user } = usuarioAtual;
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
   // Carrega os dados atuais de CNH para pré-preencher o formulário — sem isso,
   // salvar apenas a validade zerava número e categoria já cadastrados.
