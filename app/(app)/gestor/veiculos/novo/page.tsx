@@ -8,6 +8,7 @@ import { criarVeiculoAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlacaInput } from "@/components/PlacaInput";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -65,14 +66,7 @@ export default function NovoVeiculoPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="placa">Placa</Label>
-              <Input
-                id="placa"
-                name="placa"
-                placeholder="Ex: ABC1D23"
-                maxLength={8}
-                className="uppercase"
-                required
-              />
+              <PlacaInput />
               <p className="text-xs text-gray-400">
                 Formatos: AAA0000 (antigo) ou AAA0A00 (Mercosul)
               </p>

@@ -7,9 +7,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 export type ReservaFormState =
-  | { error: string; success?: never; conflito?: never }
-  | { success: string; error?: never; conflito?: never }
-  | { conflito: string; error?: never; success?: never }
+  | { error: string; success?: never }
+  | { success: string; error?: never }
   | null;
 
 // Converte "YYYY-MM-DDTHH:mm" (input local BRT) → ISO com timezone BRT
@@ -129,7 +128,9 @@ export async function criarReservaGestorAction(
   const inicioISO = toBRT(parsed.data.inicio);
   const fimISO = toBRT(parsed.data.fim);
 
-  // Verificar conflito
+  // Verificar conflito. O banco tem uma trava (EXCLUDE, migration 005) que
+  // impede duas reservas aprovadas sobrepostas para o mesmo veículo, então
+  // não há caminho de "forçar": o conflito é sempre definitivo.
   const { data: conflitos } = await supabase
     .from("reservas")
     .select("id")
@@ -138,11 +139,10 @@ export async function criarReservaGestorAction(
     .lt("inicio", fimISO)
     .gt("fim", inicioISO);
 
-  const forcar = formData.get("forcar") === "1";
-  if (conflitos && conflitos.length > 0 && !forcar) {
+  if (conflitos && conflitos.length > 0) {
     return {
-      conflito:
-        "Este veículo já possui reserva aprovada neste período. Confirmar mesmo assim?",
+      error:
+        "Este veículo já tem uma reserva aprovada que conflita com este período. Escolha outro veículo ou ajuste o horário.",
     };
   }
 
@@ -217,7 +217,9 @@ export async function aprovarReservaAction(
     return { error: "Esta solicitação não está mais pendente e não pode ser aprovada." };
   }
 
-  // Verificar conflito (excluindo a própria reserva)
+  // Verificar conflito (excluindo a própria reserva). A trava do banco
+  // (EXCLUDE, migration 005) torna qualquer conflito definitivo — não há
+  // caminho de "forçar".
   const { data: conflitos } = await supabase
     .from("reservas")
     .select("id")
@@ -227,11 +229,10 @@ export async function aprovarReservaAction(
     .lt("inicio", reserva.fim)
     .gt("fim", reserva.inicio);
 
-  const forcar = formData.get("forcar") === "1";
-  if (conflitos && conflitos.length > 0 && !forcar) {
+  if (conflitos && conflitos.length > 0) {
     return {
-      conflito:
-        "Este veículo já possui reserva aprovada neste período. Confirmar mesmo assim?",
+      error:
+        "Este veículo já tem uma reserva aprovada que conflita com este período. Escolha outro veículo ou cancele a reserva conflitante primeiro.",
     };
   }
 

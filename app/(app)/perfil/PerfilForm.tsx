@@ -8,12 +8,26 @@ import { salvarPerfilAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, ArrowRight } from "lucide-react";
+import { CheckCircle, ArrowRight, AlertTriangle } from "lucide-react";
 
 type PerfilInicial = {
   cnh_numero: string;
   cnh_categoria: string;
   cnh_validade: string;
+};
+
+export type CnhStatus = {
+  urgencia: "vencido" | "critico" | "atencao";
+  texto: string;
+} | null;
+
+const CNH_STATUS_STYLE: Record<
+  NonNullable<CnhStatus>["urgencia"],
+  { box: string; icon: string }
+> = {
+  vencido: { box: "bg-red-50 border-red-200 text-red-800", icon: "text-red-600" },
+  critico: { box: "bg-orange-50 border-orange-200 text-orange-800", icon: "text-orange-600" },
+  atencao: { box: "bg-yellow-50 border-yellow-200 text-yellow-800", icon: "text-yellow-600" },
 };
 
 function SubmitButton() {
@@ -25,7 +39,7 @@ function SubmitButton() {
   );
 }
 
-function Form({ inicial }: { inicial: PerfilInicial }) {
+function Form({ inicial, cnhStatus }: { inicial: PerfilInicial; cnhStatus: CnhStatus }) {
   const [state, formAction] = useActionState(salvarPerfilAction, null);
   const searchParams = useSearchParams();
   const novo = searchParams.get("novo") === "1";
@@ -55,6 +69,24 @@ function Form({ inicial }: { inicial: PerfilInicial }) {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+        {cnhStatus && (
+          <div
+            className={`flex items-start gap-2.5 rounded-xl border px-4 py-3 ${CNH_STATUS_STYLE[cnhStatus.urgencia].box}`}
+          >
+            <AlertTriangle
+              className={`w-4 h-4 mt-0.5 shrink-0 ${CNH_STATUS_STYLE[cnhStatus.urgencia].icon}`}
+            />
+            <div>
+              <p className="text-sm font-medium">
+                Sua CNH {cnhStatus.texto}.
+              </p>
+              <p className="text-xs opacity-80 mt-0.5">
+                Atualize a data de validade abaixo assim que renovar.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="font-semibold text-gray-900 mb-4">Habilitação (CNH)</h2>
 
@@ -137,10 +169,16 @@ function Form({ inicial }: { inicial: PerfilInicial }) {
   );
 }
 
-export function PerfilForm({ inicial }: { inicial: PerfilInicial }) {
+export function PerfilForm({
+  inicial,
+  cnhStatus,
+}: {
+  inicial: PerfilInicial;
+  cnhStatus: CnhStatus;
+}) {
   return (
     <Suspense>
-      <Form inicial={inicial} />
+      <Form inicial={inicial} cnhStatus={cnhStatus} />
     </Suspense>
   );
 }
