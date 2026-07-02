@@ -1,0 +1,25 @@
+-- =============================================================
+-- MIGRATION 020 — Restaura EXECUTE em papel_atual() (corrige a 019)
+--
+-- A migration 019 revogou EXECUTE de papel_atual() de anon/authenticated
+-- para silenciar o advisor 0028/0029 do Supabase. Isso estava ERRADO:
+-- papel_atual() é chamada DENTRO das políticas RLS (ex.: "motoristas:
+-- gestor atualiza", "veiculos: gestor atualiza", etc.). No PostgreSQL, a
+-- expressão de uma policy que chama uma função exige que o papel que
+-- executa a query tenha EXECUTE nessa função — do contrário a avaliação
+-- falha com "permission denied for function papel_atual".
+--
+-- Efeito do bug: qualquer UPDATE/INSERT cuja tabela tenha uma policy que
+-- referencia papel_atual() passou a falhar para o usuário logado — entre
+-- eles o salvamento da CNH em /perfil (UPDATE em motoristas dispara a
+-- avaliação da policy de gestor, que chama papel_atual()).
+--
+-- A migration 010 já alertava: "Não tocar papel_atual(): é usada dentro
+-- das políticas RLS." Restauramos o EXECUTE aqui.
+--
+-- Nota de segurança: expor papel_atual() via RPC apenas revela ao próprio
+-- usuário o papel dele mesmo (dado que ele já conhece) — risco desprezível
+-- frente a manter as políticas RLS funcionando.
+-- =============================================================
+
+GRANT EXECUTE ON FUNCTION public.papel_atual() TO anon, authenticated;

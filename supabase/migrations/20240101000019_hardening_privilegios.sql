@@ -11,10 +11,11 @@
 --     de coluna nunca foi aplicado. Corrigido abaixo: revoga UPDATE amplo
 --     e concede apenas na coluna `nome`.
 --
--- (2) papel_atual() deixa de ser executável por anon/authenticated via
---     RPC (/rest/v1/rpc/papel_atual). A função continua sendo usada
---     dentro das policies RLS normalmente — a avaliação da policy não
---     depende do EXECUTE do chamador (advisor 0028/0029 do Supabase).
+-- (2) [REVERTIDO NA MIGRATION 020] Tentava revogar EXECUTE de
+--     papel_atual() para silenciar o advisor 0028/0029. Isso quebra as
+--     políticas RLS que chamam papel_atual() (a expressão da policy exige
+--     EXECUTE do papel que roda a query). Ver migration 020, que restaura
+--     o grant. A linha de REVOKE foi removida abaixo.
 --
 -- (3) Integridade: km de chegada nunca menor que o de saída, e litros/
 --     valor de abastecimento não-negativos. NOT VALID para não falhar em
@@ -29,8 +30,7 @@
 REVOKE UPDATE ON public.usuarios FROM authenticated;
 GRANT  UPDATE (nome) ON public.usuarios TO authenticated;
 
--- (2) ── Remove execução direta de papel_atual() via API ──
-REVOKE EXECUTE ON FUNCTION public.papel_atual() FROM anon, authenticated, public;
+-- (2) ── (removido — quebrava as policies RLS; ver migration 020) ──
 
 -- (3) ── Integridade de quilometragem e abastecimento ──
 ALTER TABLE public.checklists
