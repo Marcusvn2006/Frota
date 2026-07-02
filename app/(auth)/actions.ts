@@ -141,7 +141,7 @@ export async function reenviarConfirmacaoAction(
     type: "signup",
     email,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://reservar-carro.vercel.app/"}/home`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://Frota.vercel.app/"}/home`,
     },
   });
 
@@ -164,7 +164,7 @@ export async function esquecerSenhaAction(
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://reservar-carro.vercel.app/";
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://Frota.vercel.app/";
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
