@@ -417,6 +417,22 @@ export default async function HomePage() {
             </Link>
           )}
 
+          {!isGestor && (
+            <Link
+              href="/minhas-multas"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Ticket className="w-4 h-4 text-orange-700" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Minhas multas</p>
+                <p className="text-xs text-gray-500">Multas vinculadas a você</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          )}
+
           {isGestor && (
             <Link
               href="/gestor/multas"
