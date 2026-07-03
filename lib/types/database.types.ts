@@ -354,6 +354,58 @@ export interface Database {
           },
         ];
       };
+      multas: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          veiculo_id: string;
+          motorista_id: string | null;
+          data_infracao: string;
+          hora_infracao: string;
+          valor: number;
+          descricao: string;
+          prazo_pagamento: string | null;
+          resolvida: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          veiculo_id: string;
+          motorista_id?: string | null;
+          data_infracao: string;
+          hora_infracao: string;
+          valor: number;
+          descricao: string;
+          prazo_pagamento?: string | null;
+          resolvida?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["multas"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "multas_empresa_id_fkey";
+            columns: ["empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "empresas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "multas_veiculo_id_fkey";
+            columns: ["veiculo_id"];
+            isOneToOne: false;
+            referencedRelation: "veiculos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "multas_motorista_id_fkey";
+            columns: ["motorista_id"];
+            isOneToOne: false;
+            referencedRelation: "motoristas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -390,6 +442,7 @@ export type Vencimento =
   Database["public"]["Tables"]["vencimentos"]["Row"];
 export type AlertaEnviado =
   Database["public"]["Tables"]["alertas_enviados"]["Row"];
+export type Multa = Database["public"]["Tables"]["multas"]["Row"];
 
 // Extended types with relations
 export type ReservaComDetalhes = Reserva & {

@@ -13,6 +13,7 @@ import {
   CalendarClock,
   BarChart2,
   ImageIcon,
+  Ticket,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProfileMenu } from "@/components/ProfileMenu";
@@ -83,6 +84,17 @@ export default async function HomePage() {
     ]);
     pendentesCount = pendCount ?? 0;
     vencimentosCount = vencCount ?? 0;
+  }
+
+  // Para funcionário: multas vinculadas a ele ainda não resolvidas.
+  let minhasMultasCount = 0;
+  if (!isGestor) {
+    const { count: multasCount } = await supabase
+      .from("multas")
+      .select("id", { count: "exact", head: true })
+      .eq("motorista_id", user.id)
+      .eq("resolvida", false);
+    minhasMultasCount = multasCount ?? 0;
   }
 
   return (
@@ -181,6 +193,22 @@ export default async function HomePage() {
               <p className="text-sm font-medium text-orange-800">
                 {vencimentosCount} vencimento{vencimentosCount > 1 ? "s" : ""} nos
                 próximos 30 dias
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-orange-600 shrink-0" />
+          </Link>
+        )}
+
+        {!isGestor && minhasMultasCount > 0 && (
+          <Link
+            href="/minhas-multas"
+            className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl p-3 hover:bg-orange-100 transition-colors"
+          >
+            <Ticket className="w-5 h-5 text-orange-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-orange-800">
+                Você tomou {minhasMultasCount} multa
+                {minhasMultasCount > 1 ? "s" : ""}
               </p>
             </div>
             <ArrowRight className="w-4 h-4 text-orange-600 shrink-0" />
@@ -349,6 +377,22 @@ export default async function HomePage() {
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Frota</p>
                 <p className="text-xs text-gray-500">Situação dos veículos</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          )}
+
+          {isGestor && (
+            <Link
+              href="/gestor/multas"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              <div className="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Ticket className="w-4 h-4 text-orange-700" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Multas</p>
+                <p className="text-xs text-gray-500">Controle de multas da frota</p>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>
