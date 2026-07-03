@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2 } from "lucide-react";
+import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2, Ticket } from "lucide-react";
 import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 // ─── Período ─────────────────────────────────────────────────────────────────
@@ -57,6 +57,12 @@ type ChRow = {
 
 type ResRow = { motorista: string; inicio: string };
 
+type MultaRow = {
+  valor: number;
+  data_infracao: string;
+  motorista: { nome: string } | null;
+};
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -78,7 +84,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
     ? new Date(Date.now() - dias * 86400000).toISOString()
     : null;
 
-  const [{ data: rawChecklists }, { data: rawReservas }] = await Promise.all([
+  const [{ data: rawChecklists }, { data: rawReservas }, { data: rawMultas }] = await Promise.all([
     admin
       .from("checklists")
       .select(`
@@ -93,6 +99,12 @@ export default async function RelatoriosPage({ searchParams }: Props) {
       .from("reservas")
       .select("motorista, inicio")
       .in("status", ["aprovada", "concluida"]),
+    admin
+      .from("multas")
+      .select(`
+        valor, data_infracao,
+        motorista:motoristas!multas_motorista_id_fkey(nome)
+      `),
   ]);
 
   const checklists = ((rawChecklists ?? []) as unknown as ChRow[]).filter(
@@ -100,6 +112,10 @@ export default async function RelatoriosPage({ searchParams }: Props) {
   );
   const reservas = ((rawReservas ?? []) as unknown as ResRow[]).filter(
     (r) => !dataInicio || r.inicio >= dataInicio
+  );
+  const dataInicioSoData = dataInicio ? dataInicio.slice(0, 10) : null;
+  const multas = ((rawMultas ?? []) as unknown as MultaRow[]).filter(
+    (m) => !dataInicioSoData || m.data_infracao >= dataInicioSoData
   );
 
   // ── KM por veículo ──────────────────────────────────────────────────────────
@@ -167,6 +183,21 @@ export default async function RelatoriosPage({ searchParams }: Props) {
     .sort((a, b) => a.mes.localeCompare(b.mes))
     .slice(-6);
   const maxMesValor = Math.max(...mesList.map((m) => m.valor), 1);
+
+  // ── Multas: gasto total e por motorista ──────────────────────────────────────
+  const multasMap = new Map<string, { valor: number; count: number }>();
+  let totalMultasValor = 0;
+  for (const m of multas) {
+    const nome = m.motorista?.nome ?? "Sem motorista atribuído";
+    const e = multasMap.get(nome);
+    if (e) { e.valor += m.valor; e.count++; }
+    else multasMap.set(nome, { valor: m.valor, count: 1 });
+    totalMultasValor += m.valor;
+  }
+  const multasPorMotorista = [...multasMap.entries()]
+    .map(([nome, s]) => ({ nome, ...s }))
+    .sort((a, b) => b.valor - a.valor);
+  const maxMultaValor = Math.max(...multasPorMotorista.map((m) => m.valor), 1);
 
   const totalKm = kmVeiculos.reduce((s, v) => s + v.km, 0);
   const totalViagens = reservas.length;
@@ -357,6 +388,46 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                     <div
                       className="bg-blue-500 h-1.5 rounded-full transition-all"
                       style={{ width: `${(m.valor / maxMesValor) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Multas */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+            <Ticket className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">Multas</h2>
+            {multas.length > 0 && (
+              <span className="ml-auto text-xs font-semibold text-gray-500">
+                {fmtBRL(totalMultasValor)}
+              </span>
+            )}
+          </div>
+          {multasPorMotorista.length === 0 ? (
+            <p className="px-4 py-8 text-sm text-gray-400 text-center">
+              Nenhuma multa registrada no período
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {multasPorMotorista.map((m) => (
+                <div key={m.nome} className="px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">{m.nome}</p>
+                    <div className="text-right shrink-0 ml-3">
+                      <p className="text-sm font-bold text-gray-900">{fmtBRL(m.valor)}</p>
+                      <p className="text-xs text-gray-400">
+                        {m.count} multa{m.count !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="bg-orange-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${(m.valor / maxMultaValor) * 100}%` }}
                     />
                   </div>
                 </div>
