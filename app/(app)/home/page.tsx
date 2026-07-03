@@ -67,23 +67,37 @@ export default async function HomePage() {
 
   const minhasReservas = (minhasReservasRaw ?? []) as unknown as ReservaProxima[];
 
-  // For gestor: count pending approvals and vencimentos próximos
+  // For gestor: count pending approvals, vencimentos próximos e multas pendentes
   let pendentesCount = 0;
   let vencimentosCount = 0;
+  let multasPendentesCount = 0;
+  let multasSemMotoristaCount = 0;
   if (isGestor) {
-    const [{ count: pendCount }, { count: vencCount }] = await Promise.all([
-      supabase
-        .from("reservas")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pendente"),
-      supabase
-        .from("vencimentos")
-        .select("id", { count: "exact", head: true })
-        .eq("resolvido", false)
-        .lte("data_vencimento", somaDias(hojeBRT(), 30)),
-    ]);
+    const [{ count: pendCount }, { count: vencCount }, { count: multasCount }, { count: multasSemMotCount }] =
+      await Promise.all([
+        supabase
+          .from("reservas")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pendente"),
+        supabase
+          .from("vencimentos")
+          .select("id", { count: "exact", head: true })
+          .eq("resolvido", false)
+          .lte("data_vencimento", somaDias(hojeBRT(), 30)),
+        supabase
+          .from("multas")
+          .select("id", { count: "exact", head: true })
+          .eq("resolvida", false),
+        supabase
+          .from("multas")
+          .select("id", { count: "exact", head: true })
+          .eq("resolvida", false)
+          .is("motorista_id", null),
+      ]);
     pendentesCount = pendCount ?? 0;
     vencimentosCount = vencCount ?? 0;
+    multasPendentesCount = multasCount ?? 0;
+    multasSemMotoristaCount = multasSemMotCount ?? 0;
   }
 
   // Para funcionário: multas vinculadas a ele ainda não resolvidas.
@@ -194,6 +208,27 @@ export default async function HomePage() {
                 {vencimentosCount} vencimento{vencimentosCount > 1 ? "s" : ""} nos
                 próximos 30 dias
               </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-orange-600 shrink-0" />
+          </Link>
+        )}
+
+        {isGestor && multasPendentesCount > 0 && (
+          <Link
+            href="/gestor/multas"
+            className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl p-3 hover:bg-orange-100 transition-colors"
+          >
+            <Ticket className="w-5 h-5 text-orange-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-orange-800">
+                {multasPendentesCount} multa{multasPendentesCount > 1 ? "s" : ""} pendente
+                {multasPendentesCount > 1 ? "s" : ""}
+              </p>
+              {multasSemMotoristaCount > 0 && (
+                <p className="text-xs text-orange-600 mt-0.5">
+                  {multasSemMotoristaCount} sem motorista atribuído
+                </p>
+              )}
             </div>
             <ArrowRight className="w-4 h-4 text-orange-600 shrink-0" />
           </Link>
