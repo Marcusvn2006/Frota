@@ -7,7 +7,7 @@ import { PerfilForm, type CnhStatus } from "./PerfilForm";
 export default async function PerfilPage() {
   const usuarioAtual = await getUsuarioAtual();
   if (!usuarioAtual) redirect("/login");
-  const { user } = usuarioAtual;
+  const { user, perfil } = usuarioAtual;
 
   const supabase = await createClient();
 
@@ -31,6 +31,8 @@ export default async function PerfilPage() {
 
   return (
     <PerfilForm
+      nome={perfil?.nome ?? ""}
+      email={user.email ?? ""}
       inicial={{
         cnh_numero: motorista?.cnh_numero ?? "",
         cnh_categoria: motorista?.cnh_categoria ?? "",

@@ -125,7 +125,7 @@ export default async function HomePage() {
               </Badge>
             )}
           </div>
-          <ProfileMenu nome={perfil?.nome ?? ""} showPerfilLink={!isGestor} />
+          <ProfileMenu nome={perfil?.nome ?? ""} />
         </div>
       </div>
 
