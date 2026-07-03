@@ -190,24 +190,58 @@ export async function ativarManutencaoAction(
 
   if (error) return { error: "Erro ao atualizar status." };
 
+  // Abre o registro de histórico — fechado (com custo) ao remover da
+  // manutenção, em desativarManutencaoAction.
+  await supabase.from("manutencoes").insert({ veiculo_id: id, motivo: parsed.data.motivo });
+
   revalidatePath("/gestor/veiculos");
   revalidatePath(`/gestor/veiculos/${id}/editar`);
   revalidatePath("/manutencao");
   return { success: "Veículo enviado para manutenção." };
 }
 
-export async function desativarManutencaoAction(id: string): Promise<void> {
-  const supabase = await getGestorClient();
-  if (!supabase) return;
+const finalizarManutencaoSchema = z.object({
+  motivo: z.string().min(3, "Descreva o que foi feito (mín. 3 caracteres)"),
+  custo: z.coerce.number().min(0, "Informe quanto foi pago"),
+});
 
-  await supabase
+export async function desativarManutencaoAction(
+  id: string,
+  _prev: VeiculoFormState,
+  formData: FormData
+): Promise<VeiculoFormState> {
+  const supabase = await getGestorClient();
+  if (!supabase) return { error: "Acesso negado." };
+
+  const parsed = finalizarManutencaoSchema.safeParse({
+    motivo: formData.get("motivo"),
+    custo: formData.get("custo"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { error: veiculoError } = await supabase
     .from("veiculos")
     .update({ em_manutencao: false, manutencao_motivo: null })
     .eq("id", id);
 
+  if (veiculoError) return { error: "Erro ao atualizar status." };
+
+  // Fecha o registro de histórico aberto com o que foi feito e o custo.
+  await supabase
+    .from("manutencoes")
+    .update({
+      motivo: parsed.data.motivo,
+      custo: parsed.data.custo,
+      data_fim: new Date().toISOString(),
+    })
+    .eq("veiculo_id", id)
+    .is("data_fim", null);
+
   revalidatePath("/gestor/veiculos");
   revalidatePath(`/gestor/veiculos/${id}/editar`);
   revalidatePath("/manutencao");
+  revalidatePath("/gestor/relatorios");
+  return { success: "Manutenção concluída." };
 }
 
 // ─── Limpar flag precisa_atencao ─────────────────────────────────────────────

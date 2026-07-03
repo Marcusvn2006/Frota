@@ -135,6 +135,7 @@ export function StatusSection({
   itensReprovados?: { item: string; obs: string | null }[];
 }) {
   const [showManutencaoForm, setShowManutencaoForm] = useState(false);
+  const [showFinalizarForm, setShowFinalizarForm] = useState(false);
 
   const ativarBound = ativarManutencaoAction.bind(null, veiculo.id);
   const [manutState, manutAction] = useActionState<VeiculoFormState, FormData>(
@@ -143,6 +144,11 @@ export function StatusSection({
   );
 
   const desativarBound = desativarManutencaoAction.bind(null, veiculo.id);
+  const [finalizarState, finalizarAction] = useActionState<VeiculoFormState, FormData>(
+    desativarBound,
+    null
+  );
+
   const limparBound = limparAtencaoAction.bind(null, veiculo.id);
 
   return (
@@ -196,11 +202,62 @@ export function StatusSection({
             )}
           </div>
 
-          <form action={desativarBound}>
-            <Button type="submit" variant="outline" className="w-full">
-              Remover da manutenção
-            </Button>
-          </form>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setShowFinalizarForm(true)}
+          >
+            Remover da manutenção
+          </Button>
+
+          <Dialog open={showFinalizarForm} onOpenChange={setShowFinalizarForm}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Concluir manutenção</DialogTitle>
+                <DialogDescription>
+                  Registre o que foi feito e quanto custou — isso entra no
+                  relatório de custo do veículo.
+                </DialogDescription>
+              </DialogHeader>
+              <form action={finalizarAction} className="space-y-4">
+                {finalizarState?.error && (
+                  <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg border border-red-200">
+                    {finalizarState.error}
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="motivo_final">O que foi feito</Label>
+                  <Textarea
+                    id="motivo_final"
+                    name="motivo"
+                    defaultValue={veiculo.manutencao_motivo ?? ""}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="custo">Quanto custou (R$)</Label>
+                  <Input
+                    id="custo"
+                    name="custo"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Ex: 350.00"
+                    required
+                  />
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                      Cancelar
+                    </Button>
+                  </DialogClose>
+                  <Button type="submit">Concluir manutenção</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       ) : (
         /* Botão para ativar manutenção */

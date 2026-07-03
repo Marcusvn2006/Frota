@@ -406,6 +406,36 @@ export interface Database {
           },
         ];
       };
+      manutencoes: {
+        Row: {
+          id: string;
+          veiculo_id: string;
+          motivo: string;
+          custo: number | null;
+          data_inicio: string;
+          data_fim: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          veiculo_id: string;
+          motivo: string;
+          custo?: number | null;
+          data_inicio?: string;
+          data_fim?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["manutencoes"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "manutencoes_veiculo_id_fkey";
+            columns: ["veiculo_id"];
+            isOneToOne: false;
+            referencedRelation: "veiculos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -443,6 +473,7 @@ export type Vencimento =
 export type AlertaEnviado =
   Database["public"]["Tables"]["alertas_enviados"]["Row"];
 export type Multa = Database["public"]["Tables"]["multas"]["Row"];
+export type Manutencao = Database["public"]["Tables"]["manutencoes"]["Row"];
 
 // Extended types with relations
 export type ReservaComDetalhes = Reserva & {

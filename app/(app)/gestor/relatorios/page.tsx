@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2, Ticket } from "lucide-react";
+import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2, Ticket, DollarSign } from "lucide-react";
 import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 // ─── Período ─────────────────────────────────────────────────────────────────
@@ -61,6 +61,13 @@ type MultaRow = {
   valor: number;
   data_infracao: string;
   motorista: { nome: string } | null;
+  veiculo: { id: string; modelo: string; placa: string; cor: string } | null;
+};
+
+type ManutencaoRow = {
+  custo: number | null;
+  data_fim: string | null;
+  veiculo: { id: string; modelo: string; placa: string; cor: string } | null;
 };
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -84,28 +91,37 @@ export default async function RelatoriosPage({ searchParams }: Props) {
     ? new Date(Date.now() - dias * 86400000).toISOString()
     : null;
 
-  const [{ data: rawChecklists }, { data: rawReservas }, { data: rawMultas }] = await Promise.all([
-    admin
-      .from("checklists")
-      .select(`
-        km_saida, km_chegada, abasteceu, litros, valor,
-        reserva:reservas!checklists_reserva_id_fkey(
-          motorista, inicio,
-          veiculo:veiculos!reservas_veiculo_id_fkey(id, modelo, placa, cor)
-        )
-      `)
-      .eq("status", "concluido"),
-    admin
-      .from("reservas")
-      .select("motorista, inicio")
-      .in("status", ["aprovada", "concluida"]),
-    admin
-      .from("multas")
-      .select(`
-        valor, data_infracao,
-        motorista:motoristas!multas_motorista_id_fkey(nome)
-      `),
-  ]);
+  const [{ data: rawChecklists }, { data: rawReservas }, { data: rawMultas }, { data: rawManutencoes }] =
+    await Promise.all([
+      admin
+        .from("checklists")
+        .select(`
+          km_saida, km_chegada, abasteceu, litros, valor,
+          reserva:reservas!checklists_reserva_id_fkey(
+            motorista, inicio,
+            veiculo:veiculos!reservas_veiculo_id_fkey(id, modelo, placa, cor)
+          )
+        `)
+        .eq("status", "concluido"),
+      admin
+        .from("reservas")
+        .select("motorista, inicio")
+        .in("status", ["aprovada", "concluida"]),
+      admin
+        .from("multas")
+        .select(`
+          valor, data_infracao,
+          motorista:motoristas!multas_motorista_id_fkey(nome),
+          veiculo:veiculos!multas_veiculo_id_fkey(id, modelo, placa, cor)
+        `),
+      admin
+        .from("manutencoes")
+        .select(`
+          custo, data_fim,
+          veiculo:veiculos!manutencoes_veiculo_id_fkey(id, modelo, placa, cor)
+        `)
+        .not("data_fim", "is", null),
+    ]);
 
   const checklists = ((rawChecklists ?? []) as unknown as ChRow[]).filter(
     (c) => !dataInicio || (c.reserva?.inicio ?? "") >= dataInicio
@@ -116,6 +132,9 @@ export default async function RelatoriosPage({ searchParams }: Props) {
   const dataInicioSoData = dataInicio ? dataInicio.slice(0, 10) : null;
   const multas = ((rawMultas ?? []) as unknown as MultaRow[]).filter(
     (m) => !dataInicioSoData || m.data_infracao >= dataInicioSoData
+  );
+  const manutencoes = ((rawManutencoes ?? []) as unknown as ManutencaoRow[]).filter(
+    (m) => !dataInicio || (m.data_fim ?? "") >= dataInicio
   );
 
   // ── KM por veículo ──────────────────────────────────────────────────────────
@@ -199,6 +218,43 @@ export default async function RelatoriosPage({ searchParams }: Props) {
     .sort((a, b) => b.valor - a.valor);
   const maxMultaValor = Math.max(...multasPorMotorista.map((m) => m.valor), 1);
 
+  // ── Custo total por veículo (combustível + multas + manutenção) ──────────────
+  type CustoVeiculo = {
+    modelo: string;
+    placa: string;
+    cor: string;
+    combustivel: number;
+    multas: number;
+    manutencao: number;
+  };
+  const custoMap = new Map<string, CustoVeiculo>();
+  function custoDoVeiculo(v: { id: string; modelo: string; placa: string; cor: string }): CustoVeiculo {
+    let e = custoMap.get(v.id);
+    if (!e) {
+      e = { modelo: v.modelo, placa: v.placa, cor: v.cor, combustivel: 0, multas: 0, manutencao: 0 };
+      custoMap.set(v.id, e);
+    }
+    return e;
+  }
+  for (const c of checklists) {
+    if (!c.abasteceu || !c.reserva?.veiculo) continue;
+    custoDoVeiculo(c.reserva.veiculo).combustivel += c.valor ?? 0;
+  }
+  for (const m of multas) {
+    if (!m.veiculo) continue;
+    custoDoVeiculo(m.veiculo).multas += m.valor;
+  }
+  for (const m of manutencoes) {
+    if (!m.veiculo || m.custo === null) continue;
+    custoDoVeiculo(m.veiculo).manutencao += m.custo;
+  }
+  const custoPorVeiculo = [...custoMap.values()]
+    .map((v) => ({ ...v, total: v.combustivel + v.multas + v.manutencao }))
+    .filter((v) => v.total > 0)
+    .sort((a, b) => b.total - a.total);
+  const maxCustoTotal = Math.max(...custoPorVeiculo.map((v) => v.total), 1);
+  const totalManutencaoValor = manutencoes.reduce((s, m) => s + (m.custo ?? 0), 0);
+
   const totalKm = kmVeiculos.reduce((s, v) => s + v.km, 0);
   const totalViagens = reservas.length;
 
@@ -267,6 +323,53 @@ export default async function RelatoriosPage({ searchParams }: Props) {
             </p>
             <p className="text-xs text-gray-500 mt-0.5">Litros abastecidos</p>
           </div>
+        </div>
+
+        {/* Custo total por veículo */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+            <DollarSign className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">Custo total por veículo</h2>
+            {custoPorVeiculo.length > 0 && (
+              <span className="ml-auto text-xs font-semibold text-gray-500">
+                {fmtBRL(totalCusto + totalMultasValor + totalManutencaoValor)}
+              </span>
+            )}
+          </div>
+          {custoPorVeiculo.length === 0 ? (
+            <p className="px-4 py-8 text-sm text-gray-400 text-center">
+              Nenhum custo registrado no período
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {custoPorVeiculo.map((v) => (
+                <div key={v.placa} className="px-4 py-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{v.modelo}</p>
+                      <p className="text-xs text-gray-400 font-mono">
+                        {v.placa} · {v.cor}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 shrink-0 ml-3">
+                      {fmtBRL(v.total)}
+                    </p>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1.5">
+                    <div
+                      className="bg-gray-900 h-1.5 rounded-full transition-all"
+                      style={{ width: `${(v.total / maxCustoTotal) * 100}%` }}
+                    />
+                  </div>
+                  <div className="flex gap-3 text-xs text-gray-400">
+                    {v.combustivel > 0 && <span>Combustível: {fmtBRL(v.combustivel)}</span>}
+                    {v.multas > 0 && <span>Multas: {fmtBRL(v.multas)}</span>}
+                    {v.manutencao > 0 && <span>Manutenção: {fmtBRL(v.manutencao)}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* KM por veículo */}
