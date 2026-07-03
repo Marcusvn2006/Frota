@@ -341,34 +341,88 @@ export default async function RelatoriosPage({ searchParams }: Props) {
               Nenhum custo registrado no período
             </p>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {custoPorVeiculo.map((v) => (
-                <div key={v.placa} className="px-4 py-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{v.modelo}</p>
-                      <p className="text-xs text-gray-400 font-mono">
-                        {v.placa} · {v.cor}
+            <>
+              {/* Destaque: maior gasto */}
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <p className="text-xs text-gray-500 mb-1">Maior gasto no período</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {custoPorVeiculo[0].modelo}{" "}
+                    <span className="font-mono text-xs font-normal text-gray-500">
+                      {custoPorVeiculo[0].placa}
+                    </span>
+                  </p>
+                  <p className="text-sm font-bold text-gray-900 shrink-0">
+                    {fmtBRL(custoPorVeiculo[0].total)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Legenda das cores */}
+              <div className="flex items-center gap-4 px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" /> Combustível
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-500" /> Multas
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500" /> Manutenção
+                </span>
+              </div>
+
+              <div className="divide-y divide-gray-100">
+                {custoPorVeiculo.map((v) => (
+                  <div key={v.placa} className="px-4 py-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{v.modelo}</p>
+                        <p className="text-xs text-gray-400 font-mono">
+                          {v.placa} · {v.cor}
+                        </p>
+                      </div>
+                      <p className="text-sm font-bold text-gray-900 shrink-0 ml-3">
+                        {fmtBRL(v.total)}
                       </p>
                     </div>
-                    <p className="text-sm font-bold text-gray-900 shrink-0 ml-3">
-                      {fmtBRL(v.total)}
-                    </p>
+
+                    {/* Barra empilhada: comprimento = gasto relativo entre veículos,
+                        cores = de onde vem o gasto desse veículo */}
+                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden mb-1.5">
+                      <div
+                        className="h-full flex"
+                        style={{ width: `${(v.total / maxCustoTotal) * 100}%` }}
+                      >
+                        {v.combustivel > 0 && (
+                          <div
+                            className="h-full bg-blue-500"
+                            style={{ width: `${(v.combustivel / v.total) * 100}%` }}
+                          />
+                        )}
+                        {v.multas > 0 && (
+                          <div
+                            className="h-full bg-orange-500"
+                            style={{ width: `${(v.multas / v.total) * 100}%` }}
+                          />
+                        )}
+                        {v.manutencao > 0 && (
+                          <div
+                            className="h-full bg-red-500"
+                            style={{ width: `${(v.manutencao / v.total) * 100}%` }}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 text-xs text-gray-400">
+                      {v.combustivel > 0 && <span>Combustível: {fmtBRL(v.combustivel)}</span>}
+                      {v.multas > 0 && <span>Multas: {fmtBRL(v.multas)}</span>}
+                      {v.manutencao > 0 && <span>Manutenção: {fmtBRL(v.manutencao)}</span>}
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1.5">
-                    <div
-                      className="bg-gray-900 h-1.5 rounded-full transition-all"
-                      style={{ width: `${(v.total / maxCustoTotal) * 100}%` }}
-                    />
-                  </div>
-                  <div className="flex gap-3 text-xs text-gray-400">
-                    {v.combustivel > 0 && <span>Combustível: {fmtBRL(v.combustivel)}</span>}
-                    {v.multas > 0 && <span>Multas: {fmtBRL(v.multas)}</span>}
-                    {v.manutencao > 0 && <span>Manutenção: {fmtBRL(v.manutencao)}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
