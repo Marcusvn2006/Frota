@@ -20,6 +20,7 @@ export interface Database {
           nome: string;
           email: string;
           papel: Papel;
+          empresa_id: string;
           created_at: string;
         };
         Insert: {
@@ -27,6 +28,7 @@ export interface Database {
           nome: string;
           email: string;
           papel?: Papel;
+          empresa_id?: string;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Insert"]>;
@@ -38,6 +40,7 @@ export interface Database {
           modelo: string;
           cor: string;
           placa: string;
+          empresa_id: string;
           em_manutencao: boolean;
           manutencao_motivo: string | null;
           precisa_atencao: boolean;
@@ -51,6 +54,7 @@ export interface Database {
           modelo: string;
           cor: string;
           placa: string;
+          empresa_id?: string;
           em_manutencao?: boolean;
           manutencao_motivo?: string | null;
           precisa_atencao?: boolean;
@@ -72,6 +76,7 @@ export interface Database {
           fim: string;
           status: StatusReserva;
           origem: OrigemReserva;
+          empresa_id: string;
           created_at: string;
           motivo_recusa: string | null;
           motorista_id: string | null;
@@ -85,6 +90,7 @@ export interface Database {
           fim: string;
           status?: StatusReserva;
           origem?: OrigemReserva;
+          empresa_id?: string;
           created_at?: string;
           motivo_recusa?: string | null;
           motorista_id?: string | null;
