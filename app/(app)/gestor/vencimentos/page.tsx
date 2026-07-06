@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CalendarClock, AlertTriangle, CheckCircle, Car, UserRound, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateOnlyBR } from "@/lib/utils";
-import { TIPO_LABEL, hojeBRT, diferencaDias, urgenciaVencimento, descricaoPrazo } from "@/lib/vencimentos";
+import { TIPO_LABEL, hojeBRT, somaDias, diferencaDias, urgenciaVencimento, descricaoPrazo } from "@/lib/vencimentos";
 import type { TipoVencimento } from "@/lib/types/database.types";
 import { resolverVencimentoAction, reabrirVencimentoAction } from "./actions";
 import { AtualizarDataButton } from "./AtualizarDataButton";
@@ -40,13 +40,20 @@ export default async function VencimentosPage({ searchParams }: Props) {
   if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
 
   const supabase = await createClient();
+  const hoje = hojeBRT();
 
   let query = supabase
     .from("vencimentos")
     .select("id, entidade_tipo, entidade_id, tipo, data_vencimento, resolvido, observacao")
     .order("data_vencimento");
 
-  if (status === "pendentes") query = query.eq("resolvido", false);
+  // "Pendentes" = precisa de atenção: não resolvido E vencido ou vencendo em
+  // até 30 dias (mesma régua do alerta da home). Sem a janela de data, itens
+  // com vencimento distante no futuro apareciam aqui, fazendo parecer que o
+  // filtro não fazia nada.
+  if (status === "pendentes") {
+    query = query.eq("resolvido", false).lte("data_vencimento", somaDias(hoje, 30));
+  }
   if (status === "resolvidos") query = query.eq("resolvido", true);
   if (tipo !== "todos") query = query.eq("tipo", tipo as TipoVencimento);
 
@@ -70,8 +77,6 @@ export default async function VencimentosPage({ searchParams }: Props) {
 
   const veiculoMap = new Map((veiculos ?? []).map((v) => [v.id, v]));
   const motoristaMap = new Map((motoristas ?? []).map((m) => [m.id, m]));
-
-  const hoje = hojeBRT();
 
   const urgenciaStyles: Record<
     ReturnType<typeof urgenciaVencimento>,
