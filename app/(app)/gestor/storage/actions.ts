@@ -22,7 +22,7 @@ export async function limparFotosAntigasAction(
 
   const { data: perfil } = await supabase
     .from("usuarios")
-    .select("papel")
+    .select("papel, empresa_id")
     .eq("id", user.id)
     .single();
   if (perfil?.papel !== "gestor") redirect("/home");
@@ -31,10 +31,22 @@ export async function limparFotosAntigasAction(
   const corte = new Date();
   corte.setMonth(corte.getMonth() - 6);
 
+  // Só apaga fotos da própria empresa: fotos.veiculo_id → veiculos.empresa_id.
+  const { data: veiculosEmpresa } = await admin
+    .from("veiculos")
+    .select("id")
+    .eq("empresa_id", perfil.empresa_id);
+  const veiculoIds = (veiculosEmpresa ?? []).map((v) => v.id);
+
+  if (veiculoIds.length === 0) {
+    return { deletadas: 0, falhasStorage: 0, timestamp: new Date().toISOString() };
+  }
+
   const { data: fotos } = await admin
     .from("fotos")
     .select("id, url")
-    .lt("tirada_em", corte.toISOString());
+    .lt("tirada_em", corte.toISOString())
+    .in("veiculo_id", veiculoIds);
 
   if (!fotos || fotos.length === 0) {
     return { deletadas: 0, falhasStorage: 0, timestamp: new Date().toISOString() };

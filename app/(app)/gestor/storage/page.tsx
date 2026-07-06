@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ImageIcon, Clock, Info } from "lucide-react";
@@ -16,7 +16,8 @@ export default async function StoragePage() {
   if (!usuarioAtual) redirect("/login");
   if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
 
-  const admin = createAdminClient();
+  // Client autenticado: o RLS de fotos já restringe à empresa do gestor.
+  const supabase = await createClient();
   const agora = new Date();
 
   const corte6m = new Date(agora);
@@ -25,8 +26,8 @@ export default async function StoragePage() {
   const corte3m = new Date(agora);
   corte3m.setMonth(corte3m.getMonth() - 3);
 
-  // Busca todas as fotos com metadados suficientes para os cards
-  const { data: todasFotos } = await admin
+  // Busca as fotos da empresa com metadados suficientes para os cards
+  const { data: todasFotos } = await supabase
     .from("fotos")
     .select("id, tipo, tirada_em");
 

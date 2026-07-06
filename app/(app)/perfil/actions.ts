@@ -47,6 +47,14 @@ export async function salvarPerfilAction(
 
   if (error) return { error: "Erro ao salvar. Tente novamente." };
 
+  // Empresa do próprio usuário — precisa ir explícita na sincronização abaixo,
+  // pois o client admin roda sem sessão (empresa_atual() seria NULL).
+  const { data: perfilRow } = await supabase
+    .from("usuarios")
+    .select("empresa_id")
+    .eq("id", user.id)
+    .single();
+
   // vencimentos é restrita ao gestor por RLS (preocupação operacional interna),
   // então a sincronização do alerta de CNH precisa do client admin — a posse
   // já foi validada pelo UPDATE acima (.eq("usuario_id", user.id)).
@@ -56,7 +64,8 @@ export async function salvarPerfilAction(
     "motorista",
     user.id,
     "cnh",
-    parsed.data.cnh_validade
+    parsed.data.cnh_validade,
+    perfilRow?.empresa_id
   );
   if (syncError) return { error: "Dados salvos, mas houve um erro ao atualizar o alerta de vencimento." };
 

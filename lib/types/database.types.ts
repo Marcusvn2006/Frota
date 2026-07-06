@@ -274,7 +274,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          empresa_id: string;
+          empresa_id?: string;
           nome: string;
           cnh_numero?: string | null;
           cnh_categoria?: string | null;
@@ -314,7 +314,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          empresa_id: string;
+          empresa_id?: string;
           entidade_tipo: EntidadeVencimento;
           entidade_id: string;
           tipo: TipoVencimento;
@@ -376,7 +376,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          empresa_id: string;
+          empresa_id?: string;
           veiculo_id: string;
           motorista_id?: string | null;
           data_infracao: string;

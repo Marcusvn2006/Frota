@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_EMPRESA_ID } from "@/lib/constants";
 import { sincronizarVencimento } from "@/lib/vencimentos";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -60,7 +59,7 @@ export async function criarMotoristaAction(
 
   const { data: motorista, error } = await supabase
     .from("motoristas")
-    .insert({ ...parsed.data, empresa_id: DEFAULT_EMPRESA_ID })
+    .insert({ ...parsed.data })
     .select("id")
     .single();
 

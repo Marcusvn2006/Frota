@@ -39,12 +39,14 @@ export async function salvarSaidaAction(
   // Fetch veiculo_id from DB — never trust client-supplied value
   const { data: clData } = await supabase
     .from("checklists")
-    .select("reserva:reservas!checklists_reserva_id_fkey(veiculo_id)")
+    .select("reserva:reservas!checklists_reserva_id_fkey(veiculo_id, empresa_id)")
     .eq("id", checklistId)
     .single();
-  const veiculoId =
-    (clData?.reserva as { veiculo_id: string | null } | null)?.veiculo_id ??
-    null;
+  const reservaData = clData?.reserva as
+    | { veiculo_id: string | null; empresa_id: string }
+    | null;
+  const veiculoId = reservaData?.veiculo_id ?? null;
+  const empresaId = reservaData?.empresa_id;
 
   const km_saida = formData.get("km_saida") as string;
   const hora_saida = formData.get("hora_saida") as string;
@@ -89,7 +91,7 @@ export async function salvarSaidaAction(
         tipo: "painel_saida",
         url: path,
       });
-      await cleanupOldPhotosIfNeeded().catch(() => {});
+      await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
     }
   }
 
@@ -112,12 +114,14 @@ export async function salvarChegadaAction(
   // Fetch veiculo_id + km_saida from DB — never trust client-supplied value
   const { data: clData } = await supabase
     .from("checklists")
-    .select("km_saida, reserva:reservas!checklists_reserva_id_fkey(veiculo_id)")
+    .select("km_saida, reserva:reservas!checklists_reserva_id_fkey(veiculo_id, empresa_id)")
     .eq("id", checklistId)
     .single();
-  const veiculoId =
-    (clData?.reserva as { veiculo_id: string | null } | null)?.veiculo_id ??
-    null;
+  const reservaData = clData?.reserva as
+    | { veiculo_id: string | null; empresa_id: string }
+    | null;
+  const veiculoId = reservaData?.veiculo_id ?? null;
+  const empresaId = reservaData?.empresa_id;
   const kmSaida = clData?.km_saida ?? null;
 
   const km_chegada = formData.get("km_chegada") as string;
@@ -160,7 +164,7 @@ export async function salvarChegadaAction(
         tipo: "painel_chegada",
         url: path,
       });
-      await cleanupOldPhotosIfNeeded().catch(() => {});
+      await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
     }
   }
 
@@ -180,7 +184,7 @@ export async function salvarChegadaAction(
           tipo: "cupom",
           url: path,
         });
-        await cleanupOldPhotosIfNeeded().catch(() => {});
+        await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
       }
     }
   }

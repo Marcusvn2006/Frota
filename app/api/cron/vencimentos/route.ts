@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   // semanal de atraso (ver JANELAS_DIAS / verificação de dias < 0 abaixo).
   const { data: vencimentos, error: vencimentosError } = await admin
     .from("vencimentos")
-    .select("id, entidade_tipo, entidade_id, tipo, data_vencimento")
+    .select("id, entidade_tipo, entidade_id, tipo, data_vencimento, empresa_id")
     .eq("resolvido", false)
     .lte("data_vencimento", limite);
 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       motoristaIds.length
         ? admin.from("motoristas").select("id, nome").in("id", motoristaIds)
         : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
-      admin.from("usuarios").select("email").eq("papel", "gestor"),
+      admin.from("usuarios").select("email, empresa_id").eq("papel", "gestor"),
       admin
         .from("alertas_enviados")
         .select("vencimento_id, dias_antes")
@@ -82,7 +82,15 @@ export async function GET(request: NextRequest) {
   const jaEnviado = new Set(
     (alertasExistentes ?? []).map((a) => `${a.vencimento_id}:${a.dias_antes}`)
   );
-  const destinatarios = (gestores ?? []).map((g) => g.email).filter(Boolean);
+  // Agrupa os e-mails de gestor por empresa: cada alerta vai apenas para os
+  // gestores da empresa dona daquele vencimento (isolamento multi-tenant).
+  const gestoresPorEmpresa = new Map<string, string[]>();
+  for (const g of gestores ?? []) {
+    if (!g.email) continue;
+    const lista = gestoresPorEmpresa.get(g.empresa_id) ?? [];
+    lista.push(g.email);
+    gestoresPorEmpresa.set(g.empresa_id, lista);
+  }
 
   let enviados = 0;
   const erros: string[] = [];
@@ -96,6 +104,8 @@ export async function GET(request: NextRequest) {
     const naJanelaAtraso = dias < 0 && dias % 7 === 0;
     if (!naJanelaFixa && !naJanelaAtraso) continue;
     if (jaEnviado.has(`${v.id}:${dias}`)) continue;
+
+    const destinatarios = gestoresPorEmpresa.get(v.empresa_id) ?? [];
     if (!destinatarios.length) continue;
 
     const entidadeNome =

@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, EntidadeVencimento, TipoVencimento } from "./types/database.types";
-import { DEFAULT_EMPRESA_ID } from "./constants";
 
 export const TIPO_LABEL: Record<TipoVencimento, string> = {
   cnh: "CNH",
@@ -52,13 +51,19 @@ export function descricaoPrazo(dias: number): string {
  * data informada no formulário de cadastro: cria/atualiza via UPSERT quando
  * há data, remove quando o campo é limpo. O trigger handle_vencimento_renovado
  * já cuida de resetar `resolvido` e os alertas enviados quando a data muda.
+ *
+ * A empresa é preenchida automaticamente pelo trigger carimba_empresa_id
+ * quando a chamada usa o client autenticado. Para chamadas via service_role
+ * (sem sessão, ex.: /perfil sincronizando a própria CNH), passe `empresaId`
+ * explícito — do contrário o INSERT ficaria sem empresa.
  */
 export async function sincronizarVencimento(
   supabase: SupabaseClient<Database>,
   entidadeTipo: EntidadeVencimento,
   entidadeId: string,
   tipo: TipoVencimento,
-  dataVencimento: string | null
+  dataVencimento: string | null,
+  empresaId?: string
 ): Promise<{ error: string | null }> {
   if (!dataVencimento) {
     const { error } = await supabase
@@ -72,7 +77,7 @@ export async function sincronizarVencimento(
 
   const { error } = await supabase.from("vencimentos").upsert(
     {
-      empresa_id: DEFAULT_EMPRESA_ID,
+      ...(empresaId ? { empresa_id: empresaId } : {}),
       entidade_tipo: entidadeTipo,
       entidade_id: entidadeId,
       tipo,

@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_EMPRESA_ID } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -90,7 +89,6 @@ export async function criarMultaAction(
     .maybeSingle();
 
   const { error } = await supabase.from("multas").insert({
-    empresa_id: DEFAULT_EMPRESA_ID,
     veiculo_id: veiculo.id,
     motorista_id: reservaCorrespondente?.motorista_id ?? null,
     data_infracao: parsed.data.data_infracao,

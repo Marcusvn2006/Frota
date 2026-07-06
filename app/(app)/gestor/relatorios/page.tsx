@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2, Ticket, DollarSign } from "lucide-react";
@@ -85,7 +85,8 @@ export default async function RelatoriosPage({ searchParams }: Props) {
   if (!usuarioAtual) redirect("/login");
   if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
 
-  const admin = createAdminClient();
+  // Client autenticado: o RLS já restringe tudo à empresa do gestor.
+  const supabase = await createClient();
   const dias = PERIODOS[periodo];
   const dataInicio = dias
     ? new Date(Date.now() - dias * 86400000).toISOString()
@@ -93,7 +94,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
 
   const [{ data: rawChecklists }, { data: rawReservas }, { data: rawMultas }, { data: rawManutencoes }] =
     await Promise.all([
-      admin
+      supabase
         .from("checklists")
         .select(`
           km_saida, km_chegada, abasteceu, litros, valor,
@@ -103,18 +104,18 @@ export default async function RelatoriosPage({ searchParams }: Props) {
           )
         `)
         .eq("status", "concluido"),
-      admin
+      supabase
         .from("reservas")
         .select("motorista, inicio")
         .in("status", ["aprovada", "concluida"]),
-      admin
+      supabase
         .from("multas")
         .select(`
           valor, data_infracao,
           motorista:motoristas!multas_motorista_id_fkey(nome),
           veiculo:veiculos!multas_veiculo_id_fkey(id, modelo, placa, cor)
         `),
-      admin
+      supabase
         .from("manutencoes")
         .select(`
           custo, data_fim,
