@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { salvarPerfilAction, trocarSenhaAction } from "./actions";
 import { logoutAction } from "@/app/(auth)/actions";
+import { SENHA_DICA } from "@/lib/senha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +103,13 @@ function TrocarSenhaButton() {
                 )}
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Nova senha</Label>
-                  <PasswordInput id="password" name="password" required minLength={8} />
+                  <PasswordInput
+                    id="password"
+                    name="password"
+                    required
+                    minLength={8}
+                    placeholder={SENHA_DICA}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="confirm">Confirmar nova senha</Label>

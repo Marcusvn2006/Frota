@@ -9,6 +9,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Building2, KeyRound } from "lucide-react";
+import { SENHA_DICA } from "@/lib/senha";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -124,7 +125,7 @@ export default function CadastrarPage() {
             autoComplete="new-password"
             required
             minLength={8}
-            placeholder="Mínimo 8 caracteres"
+            placeholder={SENHA_DICA}
           />
         </div>
 

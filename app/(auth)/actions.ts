@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { senhaSchema } from "@/lib/senha";
 
 // ─── Logout ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ const cadastroSchema = z
   .object({
     nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
     email: z.string().email("E-mail inválido"),
-    password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
+    password: senhaSchema,
     modo: z.enum(["criar", "entrar"]),
     empresa_nome: z.string().optional(),
     empresa_codigo: z.string().optional(),
@@ -256,7 +257,7 @@ export async function esquecerSenhaAction(
 
 const novaSenhaSchema = z
   .object({
-    password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
+    password: senhaSchema,
     confirm: z.string(),
   })
   .refine((d) => d.password === d.confirm, {

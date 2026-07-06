@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sincronizarVencimento } from "@/lib/vencimentos";
+import { senhaSchema } from "@/lib/senha";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -77,7 +78,7 @@ export async function salvarPerfilAction(
 
 const trocarSenhaSchema = z
   .object({
-    password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
+    password: senhaSchema,
     confirm: z.string(),
   })
   .refine((d) => d.password === d.confirm, {
