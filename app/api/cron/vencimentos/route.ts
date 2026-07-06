@@ -10,6 +10,15 @@ import {
 } from "@/lib/vencimentos";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { timingSafeEqual } from "crypto";
+
+// Comparação em tempo constante para o Bearer token do cron (evita timing).
+function bearerValido(header: string | null, secret: string): boolean {
+  const esperado = `Bearer ${secret}`;
+  const a = Buffer.from(header ?? "");
+  const b = Buffer.from(esperado);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 // Acionado pelo Vercel Cron (vercel.json) uma vez por dia.
 // Autenticação via CRON_SECRET (Vercel injeta como Bearer token automaticamente
@@ -17,7 +26,8 @@ import type { NextRequest } from "next/server";
 // dá bypass em /api/*).
 export const dynamic = "force-dynamic";
 
-const JANELAS_DIAS = [30, 15, 7, 1, 0] as const;
+// Marcos de alerta antes do vencimento, do mais urgente ao menos urgente.
+const JANELAS_ORDENADAS = [0, 1, 7, 15, 30] as const;
 
 function escapeHtml(s: string): string {
   return s
@@ -30,7 +40,7 @@ function escapeHtml(s: string): string {
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || !bearerValido(authHeader, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -40,7 +50,7 @@ export async function GET(request: NextRequest) {
 
   // Sem limite inferior: itens vencidos (data_vencimento < hoje) continuam
   // sendo processados enquanto não forem resolvidos, para o lembrete
-  // semanal de atraso (ver JANELAS_DIAS / verificação de dias < 0 abaixo).
+  // semanal de atraso (ver a lógica de marco / dias < 0 abaixo).
   const { data: vencimentos, error: vencimentosError } = await admin
     .from("vencimentos")
     .select("id, entidade_tipo, entidade_id, tipo, data_vencimento, empresa_id")
@@ -97,13 +107,21 @@ export async function GET(request: NextRequest) {
 
   for (const v of vencimentos) {
     const dias = diferencaDias(v.data_vencimento, hoje);
-    // Antes do vencimento: janelas fixas (30/15/7/1/0 dias antes).
-    // Depois do vencimento: lembrete recorrente a cada 7 dias de atraso
-    // (-7, -14, -21, ...), enquanto não for marcado como resolvido.
-    const naJanelaFixa = JANELAS_DIAS.includes(dias as (typeof JANELAS_DIAS)[number]);
-    const naJanelaAtraso = dias < 0 && dias % 7 === 0;
-    if (!naJanelaFixa && !naJanelaAtraso) continue;
-    if (jaEnviado.has(`${v.id}:${dias}`)) continue;
+    // Antes do vencimento: dispara o marco (30/15/7/1/0) mais urgente já
+    // atingido — isto é, o menor T tal que `dias <= T`. Usar "cruzou o
+    // limiar" em vez de igualdade exata garante que, se o cron pular um dia,
+    // o alerta daquele marco ainda sai (um dia atrasado) em vez de sumir.
+    // Depois do vencimento: lembrete recorrente a cada 7 dias (-7, -14, ...).
+    let marco: number | null = null;
+    if (dias >= 0) {
+      for (const t of JANELAS_ORDENADAS) {
+        if (dias <= t) { marco = t; break; }
+      }
+    } else if (dias % 7 === 0) {
+      marco = dias;
+    }
+    if (marco === null) continue;
+    if (jaEnviado.has(`${v.id}:${marco}`)) continue;
 
     const destinatarios = gestoresPorEmpresa.get(v.empresa_id) ?? [];
     if (!destinatarios.length) continue;
@@ -129,20 +147,22 @@ export async function GET(request: NextRequest) {
       <p>Data de vencimento: <strong>${formatDateOnlyBR(v.data_vencimento)}</strong></p>
     `;
 
-    const { error: insertError } = await admin
-      .from("alertas_enviados")
-      .insert({ vencimento_id: v.id, dias_antes: dias });
-
-    if (insertError) {
-      erros.push(`vencimento ${v.id} (${dias}d): falhou ao registrar alerta — ${insertError.message}`);
+    // Envia PRIMEIRO, registra depois: se o e-mail falhar, não gravamos o
+    // alerta, então ele é retentado no próximo ciclo (antes, gravava antes de
+    // enviar e uma falha do Resend descartava o alerta para sempre).
+    const { error: emailError } = await sendEmail({ to: destinatarios, subject, html });
+    if (emailError) {
+      erros.push(`vencimento ${v.id} (marco ${marco}): e-mail falhou, será retentado — ${emailError}`);
       continue;
     }
 
-    const { error } = await sendEmail({ to: destinatarios, subject, html });
-
-    if (error) {
-      erros.push(`vencimento ${v.id} (${dias}d): alerta registrado mas e-mail falhou — ${error}`);
-      continue;
+    const { error: insertError } = await admin
+      .from("alertas_enviados")
+      .insert({ vencimento_id: v.id, dias_antes: marco });
+    if (insertError) {
+      // E-mail já saiu; a UNIQUE (vencimento_id, dias_antes) evita registro
+      // duplicado, mas um raro reenvio é possível se o registro falhar aqui.
+      erros.push(`vencimento ${v.id} (marco ${marco}): e-mail enviado mas registro falhou — ${insertError.message}`);
     }
 
     enviados++;

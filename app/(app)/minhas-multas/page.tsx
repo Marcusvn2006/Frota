@@ -19,15 +19,20 @@ type MinhaMulta = {
 export default async function MinhasMultasPage() {
   const usuarioAtual = await getUsuarioAtual();
   if (!usuarioAtual) redirect("/login");
+  const { user } = usuarioAtual;
 
   const supabase = await createClient();
 
+  // Filtra explicitamente pelas multas do próprio usuário — sem isso, o gestor
+  // (que por RLS vê todas as multas da empresa) veria a frota inteira como
+  // "minhas multas".
   const { data: multasRaw } = await supabase
     .from("multas")
     .select(`
       id, data_infracao, hora_infracao, valor, descricao, prazo_pagamento, resolvida,
       veiculo:veiculos!multas_veiculo_id_fkey(modelo, placa)
     `)
+    .eq("motorista_id", user.id)
     .order("data_infracao", { ascending: false });
 
   const multas = (multasRaw ?? []) as unknown as MinhaMulta[];
