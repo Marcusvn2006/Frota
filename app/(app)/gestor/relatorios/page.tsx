@@ -91,38 +91,49 @@ export default async function RelatoriosPage({ searchParams }: Props) {
   const dataInicio = dias
     ? new Date(Date.now() - dias * 86400000).toISOString()
     : null;
+  const dataInicioSoData = dataInicio ? dataInicio.slice(0, 10) : null;
+
+  // Filtro de período empurrado para o banco (antes puxava o histórico
+  // inteiro e filtrava em memória). Para checklists, a data mora na reserva,
+  // então usamos join !inner + filtro na coluna embutida.
+  let qChecklists = supabase
+    .from("checklists")
+    .select(`
+      km_saida, km_chegada, abasteceu, litros, valor,
+      reserva:reservas!checklists_reserva_id_fkey!inner(
+        motorista, inicio,
+        veiculo:veiculos!reservas_veiculo_id_fkey(id, modelo, placa, cor)
+      )
+    `)
+    .eq("status", "concluido");
+  if (dataInicio) qChecklists = qChecklists.gte("reserva.inicio", dataInicio);
+
+  let qReservas = supabase
+    .from("reservas")
+    .select("motorista, inicio")
+    .in("status", ["aprovada", "concluida"]);
+  if (dataInicio) qReservas = qReservas.gte("inicio", dataInicio);
+
+  let qMultas = supabase
+    .from("multas")
+    .select(`
+      valor, data_infracao,
+      motorista:motoristas!multas_motorista_id_fkey(nome),
+      veiculo:veiculos!multas_veiculo_id_fkey(id, modelo, placa, cor)
+    `);
+  if (dataInicioSoData) qMultas = qMultas.gte("data_infracao", dataInicioSoData);
+
+  let qManutencoes = supabase
+    .from("manutencoes")
+    .select(`
+      custo, data_fim,
+      veiculo:veiculos!manutencoes_veiculo_id_fkey(id, modelo, placa, cor)
+    `)
+    .not("data_fim", "is", null);
+  if (dataInicio) qManutencoes = qManutencoes.gte("data_fim", dataInicio);
 
   const [{ data: rawChecklists }, { data: rawReservas }, { data: rawMultas }, { data: rawManutencoes }] =
-    await Promise.all([
-      supabase
-        .from("checklists")
-        .select(`
-          km_saida, km_chegada, abasteceu, litros, valor,
-          reserva:reservas!checklists_reserva_id_fkey(
-            motorista, inicio,
-            veiculo:veiculos!reservas_veiculo_id_fkey(id, modelo, placa, cor)
-          )
-        `)
-        .eq("status", "concluido"),
-      supabase
-        .from("reservas")
-        .select("motorista, inicio")
-        .in("status", ["aprovada", "concluida"]),
-      supabase
-        .from("multas")
-        .select(`
-          valor, data_infracao,
-          motorista:motoristas!multas_motorista_id_fkey(nome),
-          veiculo:veiculos!multas_veiculo_id_fkey(id, modelo, placa, cor)
-        `),
-      supabase
-        .from("manutencoes")
-        .select(`
-          custo, data_fim,
-          veiculo:veiculos!manutencoes_veiculo_id_fkey(id, modelo, placa, cor)
-        `)
-        .not("data_fim", "is", null),
-    ]);
+    await Promise.all([qChecklists, qReservas, qMultas, qManutencoes]);
 
   const checklists = ((rawChecklists ?? []) as unknown as ChRow[]).filter(
     (c) => !dataInicio || (c.reserva?.inicio ?? "") >= dataInicio
@@ -130,7 +141,6 @@ export default async function RelatoriosPage({ searchParams }: Props) {
   const reservas = ((rawReservas ?? []) as unknown as ResRow[]).filter(
     (r) => !dataInicio || r.inicio >= dataInicio
   );
-  const dataInicioSoData = dataInicio ? dataInicio.slice(0, 10) : null;
   const multas = ((rawMultas ?? []) as unknown as MultaRow[]).filter(
     (m) => !dataInicioSoData || m.data_infracao >= dataInicioSoData
   );

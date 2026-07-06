@@ -36,13 +36,17 @@ export async function salvarSaidaAction(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch veiculo_id from DB — never trust client-supplied value
+  // Fetch veiculo_id from DB — never trust client-supplied value.
+  // O SELECT só retorna se o usuário for envolvido na reserva (RLS "leitura
+  // envolvido"): clData nulo = sem permissão, então barramos explicitamente
+  // em vez de seguir e mostrar um falso sucesso.
   const { data: clData } = await supabase
     .from("checklists")
     .select("reserva:reservas!checklists_reserva_id_fkey(veiculo_id, empresa_id)")
     .eq("id", checklistId)
     .single();
-  const reservaData = clData?.reserva as
+  if (!clData) return { error: "Vistoria não encontrada ou sem permissão." };
+  const reservaData = clData.reserva as unknown as
     | { veiculo_id: string | null; empresa_id: string }
     | null;
   const veiculoId = reservaData?.veiculo_id ?? null;
@@ -65,16 +69,18 @@ export async function salvarSaidaAction(
 
   if (clError) return { error: clError.message };
 
-  // Update each of the 18 checklist items
+  // Atualiza os 18 itens em paralelo (antes eram 18 UPDATEs sequenciais).
   const itemIds = formData.getAll("item_id") as string[];
-  for (const itemId of itemIds) {
-    const ok = formData.get(`item_${itemId}_ok`) === "true";
-    const obs = (formData.get(`item_${itemId}_obs`) as string) || null;
-    await supabase
-      .from("checklist_itens")
-      .update({ ok, obs: ok ? null : obs })
-      .eq("id", itemId);
-  }
+  await Promise.all(
+    itemIds.map((itemId) => {
+      const ok = formData.get(`item_${itemId}_ok`) === "true";
+      const obs = (formData.get(`item_${itemId}_obs`) as string) || null;
+      return supabase
+        .from("checklist_itens")
+        .update({ ok, obs: ok ? null : obs })
+        .eq("id", itemId);
+    })
+  );
 
   // Upload painel_saida photo (optional)
   const foto = formData.get("painel_saida") as File | null;
@@ -117,12 +123,13 @@ export async function salvarChegadaAction(
     .select("km_saida, reserva:reservas!checklists_reserva_id_fkey(veiculo_id, empresa_id)")
     .eq("id", checklistId)
     .single();
-  const reservaData = clData?.reserva as
+  if (!clData) return { error: "Vistoria não encontrada ou sem permissão." };
+  const reservaData = clData.reserva as unknown as
     | { veiculo_id: string | null; empresa_id: string }
     | null;
   const veiculoId = reservaData?.veiculo_id ?? null;
   const empresaId = reservaData?.empresa_id;
-  const kmSaida = clData?.km_saida ?? null;
+  const kmSaida = clData.km_saida ?? null;
 
   const km_chegada = formData.get("km_chegada") as string;
   const hora_chegada = formData.get("hora_chegada") as string;
