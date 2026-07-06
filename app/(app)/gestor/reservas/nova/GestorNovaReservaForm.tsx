@@ -56,42 +56,11 @@ export function GestorNovaReservaForm({ nomeInicial, veiculos, funcionarios }: P
 
       <div className="max-w-2xl mx-auto px-4 py-4">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          {/* Conflito — re-submit com forcar=1 */}
-          {state?.conflito ? (
-            <div className="space-y-4">
-              <div className="bg-yellow-50 text-yellow-800 text-sm px-4 py-3 rounded-lg border border-yellow-200 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                <p>{state.conflito}</p>
-              </div>
-              <form action={formAction} className="space-y-3">
-                <input type="hidden" name="veiculo_id" value={veiculoId} />
-                <input type="hidden" name="motorista" value={motorista} />
-                <input type="hidden" name="motorista_id" value={motoristaId} />
-                <input type="hidden" name="forcar" value="1" />
-                {/* Re-submit preservando motorista/veiculo via hidden */}
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => window.location.reload()}
-                  >
-                    Voltar
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 bg-yellow-600 hover:bg-yellow-700"
-                  >
-                    Confirmar mesmo assim
-                  </Button>
-                </div>
-              </form>
-            </div>
-          ) : (
-            <form action={formAction} className="space-y-4">
+          <form action={formAction} className="space-y-4">
               {state?.error && (
-                <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200">
-                  {state.error}
+                <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <p>{state.error}</p>
                 </div>
               )}
 
@@ -167,7 +136,6 @@ export function GestorNovaReservaForm({ nomeInicial, veiculos, funcionarios }: P
 
               <SubmitButton label="Criar reserva aprovada" />
             </form>
-          )}
         </div>
       </div>
     </div>

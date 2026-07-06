@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CalendarioReservas, type CalendarReserva } from "@/components/CalendarioReservas";
 import { Badge } from "@/components/ui/badge";
 import { formatBRT } from "@/lib/utils";
-import { Clock, Car, CalendarDays, List } from "lucide-react";
+import { Clock, Car, CalendarDays, List, MapPin } from "lucide-react";
 import type { StatusReserva, OrigemReserva } from "@/lib/types/database.types";
 
 type ReservaRow = CalendarReserva & {
@@ -58,12 +58,15 @@ function ReservaCard({ r, isGestor }: { r: ReservaRow; isGestor: boolean }) {
             <span>{r.veiculo.modelo} <span className="font-mono text-xs">{r.veiculo.placa}</span></span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-yellow-600">
+          <div className="flex items-center gap-1.5 text-gray-400">
             <Car className="w-3.5 h-3.5 shrink-0" />
             <span className="text-xs">Veículo a definir</span>
           </div>
         )}
-        <p className="text-xs text-gray-500 truncate">📍 {destino}{maisDestinos}</p>
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <span className="truncate">{destino}{maisDestinos}</span>
+        </div>
       </div>
     </Link>
   );
@@ -74,8 +77,11 @@ interface Props {
   isGestor: boolean;
 }
 
+const HISTORICO_PAGE_SIZE = 15;
+
 export function ReservasPageClient({ reservas, isGestor }: Props) {
   const [view, setView] = useState<"calendario" | "lista">("calendario");
+  const [historicoLimite, setHistoricoLimite] = useState(HISTORICO_PAGE_SIZE);
 
   const agora = new Date().toISOString();
   const pendentes = reservas.filter((r) => r.status === "pendente");
@@ -160,7 +166,15 @@ export function ReservasPageClient({ reservas, isGestor }: Props) {
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
                 Histórico ({historico.length})
               </h2>
-              {historico.slice(0, 15).map((r) => <ReservaCard key={r.id} r={r} isGestor={isGestor} />)}
+              {historico.slice(0, historicoLimite).map((r) => <ReservaCard key={r.id} r={r} isGestor={isGestor} />)}
+              {historico.length > historicoLimite && (
+                <button
+                  onClick={() => setHistoricoLimite((l) => l + HISTORICO_PAGE_SIZE)}
+                  className="w-full text-sm text-blue-600 hover:text-blue-800 py-2 font-medium"
+                >
+                  Ver mais ({historico.length - historicoLimite} restantes)
+                </button>
+              )}
             </section>
           )}
           {reservas.length === 0 && (

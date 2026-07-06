@@ -2,22 +2,14 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Wrench, CheckCircle, AlertTriangle, Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 export default async function ManutencaoPage() {
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  const isGestor = usuarioAtual.perfil.papel === "gestor";
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("papel")
-    .eq("id", user.id)
-    .single();
-
-  const isGestor = perfil?.papel === "gestor";
   const agora = new Date().toISOString();
 
   const [{ data: veiculos }, { data: reservasAtivas }] = await Promise.all([

@@ -66,7 +66,7 @@ export function DisponibilidadeClient() {
             <input type="hidden" name="inicio" value={inicio} />
             <input type="hidden" name="fim" value={fim} />
 
-            <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="inicio">Saída</Label>
                 <Input

@@ -8,6 +8,7 @@ import { criarVeiculoAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlacaInput } from "@/components/PlacaInput";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -65,17 +66,32 @@ export default function NovoVeiculoPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="placa">Placa</Label>
-              <Input
-                id="placa"
-                name="placa"
-                placeholder="Ex: ABC1D23"
-                maxLength={8}
-                className="uppercase"
-                required
-              />
+              <PlacaInput />
               <p className="text-xs text-gray-400">
                 Formatos: AAA0000 (antigo) ou AAA0A00 (Mercosul)
               </p>
+            </div>
+
+            <div className="pt-2 border-t border-gray-100">
+              <p className="text-sm font-medium text-gray-700 mb-3">Vencimentos <span className="text-gray-400 font-normal">(opcional)</span></p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="ipva_validade">IPVA</Label>
+                  <Input id="ipva_validade" name="ipva_validade" type="date" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="licenciamento_validade">Licenciamento</Label>
+                  <Input id="licenciamento_validade" name="licenciamento_validade" type="date" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="revisao_validade">Próxima revisão</Label>
+                  <Input id="revisao_validade" name="revisao_validade" type="date" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="seguro_validade">Seguro</Label>
+                  <Input id="seguro_validade" name="seguro_validade" type="date" />
+                </div>
+              </div>
             </div>
 
             <SubmitButton />

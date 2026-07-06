@@ -9,11 +9,17 @@ import {
   ArrowRight,
   ClipboardCheck,
   Plus,
-  HardDrive,
+  UserRound,
+  CalendarClock,
+  BarChart2,
+  ImageIcon,
+  Ticket,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { LogoutButton } from "@/components/LogoutButton";
+import { ProfileMenu } from "@/components/ProfileMenu";
 import { formatBRT } from "@/lib/utils";
+import { hojeBRT, somaDias } from "@/lib/vencimentos";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 import type { StatusReserva } from "@/lib/types/database.types";
 
 type ReservaProxima = {
@@ -27,22 +33,16 @@ type ReservaProxima = {
 };
 
 export default async function HomePage() {
-  const supabase = await createClient();
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  const { user, perfil } = usuarioAtual;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const supabase = await createClient();
 
   const agora = new Date();
   const limite48h = new Date(agora.getTime() - 48 * 60 * 60 * 1000).toISOString();
 
-  const [
-    { data: perfil },
-    { data: veiculos },
-    { data: minhasReservasRaw },
-  ] = await Promise.all([
-    supabase.from("usuarios").select("*").eq("id", user.id).single(),
+  const [{ data: veiculos }, { data: minhasReservasRaw }] = await Promise.all([
     supabase.from("veiculos").select("*"),
     supabase
       .from("reservas")
@@ -67,14 +67,48 @@ export default async function HomePage() {
 
   const minhasReservas = (minhasReservasRaw ?? []) as unknown as ReservaProxima[];
 
-  // For gestor: count pending approvals
+  // For gestor: count pending approvals, vencimentos próximos e multas pendentes
   let pendentesCount = 0;
+  let vencimentosCount = 0;
+  let multasPendentesCount = 0;
+  let multasSemMotoristaCount = 0;
   if (isGestor) {
-    const { count } = await supabase
-      .from("reservas")
+    const [{ count: pendCount }, { count: vencCount }, { count: multasCount }, { count: multasSemMotCount }] =
+      await Promise.all([
+        supabase
+          .from("reservas")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pendente"),
+        supabase
+          .from("vencimentos")
+          .select("id", { count: "exact", head: true })
+          .eq("resolvido", false)
+          .lte("data_vencimento", somaDias(hojeBRT(), 30)),
+        supabase
+          .from("multas")
+          .select("id", { count: "exact", head: true })
+          .eq("resolvida", false),
+        supabase
+          .from("multas")
+          .select("id", { count: "exact", head: true })
+          .eq("resolvida", false)
+          .is("motorista_id", null),
+      ]);
+    pendentesCount = pendCount ?? 0;
+    vencimentosCount = vencCount ?? 0;
+    multasPendentesCount = multasCount ?? 0;
+    multasSemMotoristaCount = multasSemMotCount ?? 0;
+  }
+
+  // Para funcionário: multas vinculadas a ele ainda não resolvidas.
+  let minhasMultasCount = 0;
+  if (!isGestor) {
+    const { count: multasCount } = await supabase
+      .from("multas")
       .select("id", { count: "exact", head: true })
-      .eq("status", "pendente");
-    pendentesCount = count ?? 0;
+      .eq("motorista_id", user.id)
+      .eq("resolvida", false);
+    minhasMultasCount = multasCount ?? 0;
   }
 
   return (
@@ -91,31 +125,40 @@ export default async function HomePage() {
               </Badge>
             )}
           </div>
-          <LogoutButton />
+          <ProfileMenu nome={perfil?.nome ?? ""} />
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 -mt-4 pb-28 space-y-4">
         {/* Resumo da frota */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=disponiveis" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-green-600">{disponiveis}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Disponíveis
             </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          </Link>
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=manutencao" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-red-600">{emManutencao}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Manutenção
             </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          </Link>
+          <Link
+            href={isGestor ? "/gestor/veiculos?status=atencao" : "/manutencao"}
+            className="bg-white rounded-xl border border-gray-200 p-3 text-center hover:border-blue-300 hover:shadow-sm transition-all active:scale-[0.98]"
+          >
             <p className="text-2xl font-bold text-yellow-600">{comAtencao}</p>
             <p className="text-xs text-gray-500 mt-0.5 leading-tight">
               Atenção
             </p>
-          </div>
+          </Link>
         </div>
 
         {/* Alertas */}
@@ -152,6 +195,59 @@ export default async function HomePage() {
               {comAtencao > 1 ? "m" : ""} de atenção
             </p>
           </div>
+        )}
+
+        {isGestor && vencimentosCount > 0 && (
+          <Link
+            href="/gestor/vencimentos"
+            className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl p-3 hover:bg-orange-100 transition-colors"
+          >
+            <CalendarClock className="w-5 h-5 text-orange-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-orange-800">
+                {vencimentosCount} vencimento{vencimentosCount > 1 ? "s" : ""} nos
+                próximos 30 dias
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-orange-600 shrink-0" />
+          </Link>
+        )}
+
+        {isGestor && multasPendentesCount > 0 && (
+          <Link
+            href="/gestor/multas"
+            className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl p-3 hover:bg-orange-100 transition-colors"
+          >
+            <Ticket className="w-5 h-5 text-orange-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-orange-800">
+                {multasPendentesCount} multa{multasPendentesCount > 1 ? "s" : ""} pendente
+                {multasPendentesCount > 1 ? "s" : ""}
+              </p>
+              {multasSemMotoristaCount > 0 && (
+                <p className="text-xs text-orange-600 mt-0.5">
+                  {multasSemMotoristaCount} sem motorista atribuído
+                </p>
+              )}
+            </div>
+            <ArrowRight className="w-4 h-4 text-orange-600 shrink-0" />
+          </Link>
+        )}
+
+        {!isGestor && minhasMultasCount > 0 && (
+          <Link
+            href="/minhas-multas"
+            className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl p-3 hover:bg-orange-100 transition-colors"
+          >
+            <Ticket className="w-5 h-5 text-orange-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-orange-800">
+                Você tomou {minhasMultasCount} multa
+                {minhasMultasCount > 1 ? "s" : ""}
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-orange-600 shrink-0" />
+          </Link>
         )}
 
         {/* Próximas reservas do usuário */}
@@ -242,7 +338,7 @@ export default async function HomePage() {
           </h2>
 
           <Link
-            href="/reservas/nova"
+            href={isGestor ? "/gestor/reservas/nova" : "/reservas/nova"}
             className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
           >
             <div className="w-9 h-9 bg-blue-700 rounded-lg flex items-center justify-center">
@@ -250,9 +346,11 @@ export default async function HomePage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
-                Solicitar reserva
+                {isGestor ? "Criar reserva" : "Solicitar reserva"}
               </p>
-              <p className="text-xs text-gray-500">Agendar uso de veículo</p>
+              <p className="text-xs text-gray-500">
+                {isGestor ? "Reservar veículo diretamente" : "Agendar uso de veículo"}
+              </p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400" />
           </Link>
@@ -276,8 +374,8 @@ export default async function HomePage() {
               href="/veiculos/disponibilidade"
               className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
             >
-              <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-                <Car className="w-4 h-4 text-green-700" />
+              <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Car className="w-4 h-4 text-blue-700" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Disponibilidade</p>
@@ -287,26 +385,10 @@ export default async function HomePage() {
             </Link>
           )}
 
-          {isGestor && (
-            <Link
-              href="/gestor/storage"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
-            >
-              <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
-                <HardDrive className="w-4 h-4 text-gray-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Armazenamento</p>
-                <p className="text-xs text-gray-500">Limpar fotos antigas</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-            </Link>
-          )}
-
           {isGestor ? (
             <Link
               href="/gestor/veiculos"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
             >
               <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Car className="w-4 h-4 text-purple-700" />
@@ -322,7 +404,7 @@ export default async function HomePage() {
           ) : (
             <Link
               href="/manutencao"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
             >
               <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
                 <Car className="w-4 h-4 text-gray-600" />
@@ -330,6 +412,70 @@ export default async function HomePage() {
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Frota</p>
                 <p className="text-xs text-gray-500">Situação dos veículos</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          )}
+
+          {!isGestor && (
+            <Link
+              href="/minhas-multas"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Ticket className="w-4 h-4 text-orange-700" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Minhas multas</p>
+                <p className="text-xs text-gray-500">Multas vinculadas a você</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          )}
+
+          {isGestor && (
+            <Link
+              href="/gestor/multas"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              <div className="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Ticket className="w-4 h-4 text-orange-700" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Multas</p>
+                <p className="text-xs text-gray-500">Controle de multas da frota</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          )}
+
+          {isGestor && (
+            <Link
+              href="/gestor/relatorios"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                <BarChart2 className="w-4 h-4 text-blue-700" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Relatórios</p>
+                <p className="text-xs text-gray-500">Consumo, km e abastecimento</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </Link>
+          )}
+
+          {isGestor && (
+            <Link
+              href="/galeria"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
+                <ImageIcon className="w-4 h-4 text-gray-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">Galeria</p>
+                <p className="text-xs text-gray-500">Fotos das vistorias</p>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
             </Link>

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { SaidaForm } from "./SaidaForm";
 import { ChegadaForm } from "./ChegadaForm";
 import { iniciarChecklistAction } from "./actions";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 import type { ChecklistItem, Checklist } from "@/lib/types/database.types";
 
 interface Props {
@@ -192,20 +193,12 @@ function Resumo({
 
 export default async function ChecklistPage({ params }: Props) {
   const { reservaId } = await params;
+
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  const isGestor = usuarioAtual.perfil.papel === "gestor";
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  const isGestor = perfil?.papel === "gestor";
 
   const { data: reservaRaw } = await supabase
     .from("reservas")

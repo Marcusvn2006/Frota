@@ -8,6 +8,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
+import { senhaSchema, SENHA_DICA } from "@/lib/senha";
 
 export default function NovaSenhaPage() {
   const router = useRouter();
@@ -41,8 +42,9 @@ export default function NovaSenhaPage() {
     e.preventDefault();
     setFormError("");
 
-    if (password.length < 8) {
-      setFormError("Senha deve ter pelo menos 8 caracteres");
+    const senhaOk = senhaSchema.safeParse(password);
+    if (!senhaOk.success) {
+      setFormError(senhaOk.error.issues[0].message);
       return;
     }
     if (password !== confirm) {
@@ -100,9 +102,7 @@ export default function NovaSenhaPage() {
   return (
     <div className="rounded-2xl bg-white shadow-sm border border-gray-200 p-8">
       <h2 className="text-lg font-semibold text-gray-900 mb-1">Nova senha</h2>
-      <p className="text-sm text-gray-500 mb-6">
-        Escolha uma senha forte com pelo menos 8 caracteres.
-      </p>
+      <p className="text-sm text-gray-500 mb-6">{SENHA_DICA}.</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
@@ -113,7 +113,7 @@ export default function NovaSenhaPage() {
             autoComplete="new-password"
             required
             minLength={8}
-            placeholder="Mínimo 8 caracteres"
+            placeholder={SENHA_DICA}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />

@@ -34,3 +34,15 @@ export function formatBRL(value: number | null | undefined): string {
     currency: "BRL",
   }).format(value);
 }
+
+/**
+ * Formata uma coluna DATE (sem hora, ex.: "2026-07-01") para "01/07/2026".
+ * Não usa Date/timeZone: um DATE puro interpretado como UTC e depois
+ * convertido para America/Sao_Paulo (formatBRT) volta um dia, já que
+ * "00:00 UTC" é "21:00 do dia anterior" em BRT.
+ */
+export function formatDateOnlyBR(value: string | null | undefined): string {
+  if (!value) return "—";
+  const [y, m, d] = value.split("-");
+  return `${d}/${m}/${y}`;
+}

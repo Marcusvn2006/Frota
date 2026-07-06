@@ -15,8 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlacaInput } from "@/components/PlacaInput";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -74,14 +74,49 @@ export function VeiculoEditForm({ veiculo }: { veiculo: Veiculo }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="placa">Placa</Label>
-          <Input
-            id="placa"
-            name="placa"
-            defaultValue={veiculo.placa}
-            maxLength={8}
-            className="uppercase"
-            required
-          />
+          <PlacaInput defaultValue={veiculo.placa} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+          <div className="space-y-1.5">
+            <Label htmlFor="ipva_validade">Vencimento do IPVA</Label>
+            <Input
+              id="ipva_validade"
+              name="ipva_validade"
+              type="date"
+              defaultValue={veiculo.ipva_validade ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="licenciamento_validade">Vencimento do licenciamento</Label>
+            <Input
+              id="licenciamento_validade"
+              name="licenciamento_validade"
+              type="date"
+              defaultValue={veiculo.licenciamento_validade ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="revisao_validade">Próxima revisão</Label>
+            <Input
+              id="revisao_validade"
+              name="revisao_validade"
+              type="date"
+              defaultValue={veiculo.revisao_validade ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="seguro_validade">Vencimento do seguro</Label>
+            <Input
+              id="seguro_validade"
+              name="seguro_validade"
+              type="date"
+              defaultValue={veiculo.seguro_validade ?? ""}
+            />
+          </div>
         </div>
 
         <SubmitBtn label="Salvar alterações" pending_label="Salvando..." />
@@ -100,6 +135,7 @@ export function StatusSection({
   itensReprovados?: { item: string; obs: string | null }[];
 }) {
   const [showManutencaoForm, setShowManutencaoForm] = useState(false);
+  const [showFinalizarForm, setShowFinalizarForm] = useState(false);
 
   const ativarBound = ativarManutencaoAction.bind(null, veiculo.id);
   const [manutState, manutAction] = useActionState<VeiculoFormState, FormData>(
@@ -108,6 +144,11 @@ export function StatusSection({
   );
 
   const desativarBound = desativarManutencaoAction.bind(null, veiculo.id);
+  const [finalizarState, finalizarAction] = useActionState<VeiculoFormState, FormData>(
+    desativarBound,
+    null
+  );
+
   const limparBound = limparAtencaoAction.bind(null, veiculo.id);
 
   return (
@@ -161,11 +202,62 @@ export function StatusSection({
             )}
           </div>
 
-          <form action={desativarBound}>
-            <Button type="submit" variant="outline" className="w-full">
-              Remover da manutenção
-            </Button>
-          </form>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setShowFinalizarForm(true)}
+          >
+            Remover da manutenção
+          </Button>
+
+          <Dialog open={showFinalizarForm} onOpenChange={setShowFinalizarForm}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Concluir manutenção</DialogTitle>
+                <DialogDescription>
+                  Registre o que foi feito e quanto custou — isso entra no
+                  relatório de custo do veículo.
+                </DialogDescription>
+              </DialogHeader>
+              <form action={finalizarAction} className="space-y-4">
+                {finalizarState?.error && (
+                  <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg border border-red-200">
+                    {finalizarState.error}
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="motivo_final">O que foi feito</Label>
+                  <Textarea
+                    id="motivo_final"
+                    name="motivo"
+                    defaultValue={veiculo.manutencao_motivo ?? ""}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="custo">Quanto custou (R$)</Label>
+                  <Input
+                    id="custo"
+                    name="custo"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Ex: 350.00"
+                    required
+                  />
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                      Cancelar
+                    </Button>
+                  </DialogClose>
+                  <Button type="submit">Concluir manutenção</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       ) : (
         /* Botão para ativar manutenção */

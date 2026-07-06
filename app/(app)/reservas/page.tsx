@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReservasPageClient } from "./ReservasPageClient";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 import type { StatusReserva, OrigemReserva } from "@/lib/types/database.types";
 
 type ReservaRow = {
@@ -20,20 +21,11 @@ type ReservaRow = {
 };
 
 export default async function ReservasPage() {
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  const isGestor = usuarioAtual.perfil.papel === "gestor";
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  const isGestor = perfil?.papel === "gestor";
 
   const { data: reservasRaw } = await supabase
     .from("reservas")

@@ -1,19 +1,16 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Toaster } from "@/components/ui/toaster";
 import { Navbar } from "@/components/Navbar";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const usuarioAtual = await getUsuarioAtual();
 
-  if (!user) redirect("/login");
+  if (!usuarioAtual) redirect("/login");
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

@@ -1,13 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { DisponibilidadeClient } from "./DisponibilidadeClient";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 export default async function DisponibilidadePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
 
   return <DisponibilidadeClient />;
 }

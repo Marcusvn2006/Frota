@@ -206,9 +206,17 @@ export function ChegadaForm({ checklistId, reservaId, kmSaida, horaAtual }: Prop
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Concluindo vistoria..." : "Concluir vistoria"}
-      </Button>
+      {/* Espaçador para o conteúdo não ficar atrás do botão fixo */}
+      <div className="h-16" />
+
+      {/* Botão fixo no rodapé — o formulário é longo, evita rolar até o fim */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 z-40 safe-area-inset-bottom">
+        <div className="max-w-2xl mx-auto">
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Concluindo vistoria..." : "Concluir vistoria"}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

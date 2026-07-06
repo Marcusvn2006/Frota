@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 
 export type VeiculoResultado = {
@@ -40,12 +39,11 @@ export async function verificarDisponibilidadeAction(
     return { resultado: [], inicio, fim, error: "O retorno deve ser após a saída." };
   }
 
-  // Admin client para ver todas as reservas aprovadas (ignora RLS de solicitante)
-  const admin = createAdminClient();
-
+  // Client autenticado: o RLS já deixa qualquer usuário da empresa ver todos
+  // os veículos e reservas aprovadas da própria empresa (e só dela).
   const [{ data: veiculos }, { data: conflitos }] = await Promise.all([
-    admin.from("veiculos").select("id, modelo, placa, cor, em_manutencao").order("modelo"),
-    admin
+    supabase.from("veiculos").select("id, modelo, placa, cor, em_manutencao").order("modelo"),
+    supabase
       .from("reservas")
       .select("veiculo_id")
       .eq("status", "aprovada")

@@ -1,8 +1,8 @@
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Car, Fuel, Users, TrendingUp } from "lucide-react";
+import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2, Ticket, DollarSign } from "lucide-react";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 
 // ─── Período ─────────────────────────────────────────────────────────────────
 
@@ -57,6 +57,19 @@ type ChRow = {
 
 type ResRow = { motorista: string; inicio: string };
 
+type MultaRow = {
+  valor: number;
+  data_infracao: string;
+  motorista: { nome: string } | null;
+  veiculo: { id: string; modelo: string; placa: string; cor: string } | null;
+};
+
+type ManutencaoRow = {
+  custo: number | null;
+  data_fim: string | null;
+  veiculo: { id: string; modelo: string; placa: string; cor: string } | null;
+};
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -68,47 +81,71 @@ export default async function RelatoriosPage({ searchParams }: Props) {
   const periodo: Periodo =
     periodoParam && periodoParam in PERIODOS ? (periodoParam as Periodo) : "180d";
 
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
+
+  // Client autenticado: o RLS já restringe tudo à empresa do gestor.
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("papel")
-    .eq("id", user.id)
-    .single();
-  if (perfil?.papel !== "gestor") redirect("/home");
-
-  const admin = createAdminClient();
   const dias = PERIODOS[periodo];
   const dataInicio = dias
     ? new Date(Date.now() - dias * 86400000).toISOString()
     : null;
+  const dataInicioSoData = dataInicio ? dataInicio.slice(0, 10) : null;
 
-  const [{ data: rawChecklists }, { data: rawReservas }] = await Promise.all([
-    admin
-      .from("checklists")
-      .select(`
-        km_saida, km_chegada, abasteceu, litros, valor,
-        reserva:reservas!checklists_reserva_id_fkey(
-          motorista, inicio,
-          veiculo:veiculos!reservas_veiculo_id_fkey(id, modelo, placa, cor)
-        )
-      `)
-      .eq("status", "concluido"),
-    admin
-      .from("reservas")
-      .select("motorista, inicio")
-      .in("status", ["aprovada", "concluida"]),
-  ]);
+  // Filtro de período empurrado para o banco (antes puxava o histórico
+  // inteiro e filtrava em memória). Para checklists, a data mora na reserva,
+  // então usamos join !inner + filtro na coluna embutida.
+  let qChecklists = supabase
+    .from("checklists")
+    .select(`
+      km_saida, km_chegada, abasteceu, litros, valor,
+      reserva:reservas!checklists_reserva_id_fkey!inner(
+        motorista, inicio,
+        veiculo:veiculos!reservas_veiculo_id_fkey(id, modelo, placa, cor)
+      )
+    `)
+    .eq("status", "concluido");
+  if (dataInicio) qChecklists = qChecklists.gte("reserva.inicio", dataInicio);
+
+  let qReservas = supabase
+    .from("reservas")
+    .select("motorista, inicio")
+    .in("status", ["aprovada", "concluida"]);
+  if (dataInicio) qReservas = qReservas.gte("inicio", dataInicio);
+
+  let qMultas = supabase
+    .from("multas")
+    .select(`
+      valor, data_infracao,
+      motorista:motoristas!multas_motorista_id_fkey(nome),
+      veiculo:veiculos!multas_veiculo_id_fkey(id, modelo, placa, cor)
+    `);
+  if (dataInicioSoData) qMultas = qMultas.gte("data_infracao", dataInicioSoData);
+
+  let qManutencoes = supabase
+    .from("manutencoes")
+    .select(`
+      custo, data_fim,
+      veiculo:veiculos!manutencoes_veiculo_id_fkey(id, modelo, placa, cor)
+    `)
+    .not("data_fim", "is", null);
+  if (dataInicio) qManutencoes = qManutencoes.gte("data_fim", dataInicio);
+
+  const [{ data: rawChecklists }, { data: rawReservas }, { data: rawMultas }, { data: rawManutencoes }] =
+    await Promise.all([qChecklists, qReservas, qMultas, qManutencoes]);
 
   const checklists = ((rawChecklists ?? []) as unknown as ChRow[]).filter(
     (c) => !dataInicio || (c.reserva?.inicio ?? "") >= dataInicio
   );
   const reservas = ((rawReservas ?? []) as unknown as ResRow[]).filter(
     (r) => !dataInicio || r.inicio >= dataInicio
+  );
+  const multas = ((rawMultas ?? []) as unknown as MultaRow[]).filter(
+    (m) => !dataInicioSoData || m.data_infracao >= dataInicioSoData
+  );
+  const manutencoes = ((rawManutencoes ?? []) as unknown as ManutencaoRow[]).filter(
+    (m) => !dataInicio || (m.data_fim ?? "") >= dataInicio
   );
 
   // ── KM por veículo ──────────────────────────────────────────────────────────
@@ -177,6 +214,58 @@ export default async function RelatoriosPage({ searchParams }: Props) {
     .slice(-6);
   const maxMesValor = Math.max(...mesList.map((m) => m.valor), 1);
 
+  // ── Multas: gasto total e por motorista ──────────────────────────────────────
+  const multasMap = new Map<string, { valor: number; count: number }>();
+  let totalMultasValor = 0;
+  for (const m of multas) {
+    const nome = m.motorista?.nome ?? "Sem motorista atribuído";
+    const e = multasMap.get(nome);
+    if (e) { e.valor += m.valor; e.count++; }
+    else multasMap.set(nome, { valor: m.valor, count: 1 });
+    totalMultasValor += m.valor;
+  }
+  const multasPorMotorista = [...multasMap.entries()]
+    .map(([nome, s]) => ({ nome, ...s }))
+    .sort((a, b) => b.valor - a.valor);
+  const maxMultaValor = Math.max(...multasPorMotorista.map((m) => m.valor), 1);
+
+  // ── Custo total por veículo (combustível + multas + manutenção) ──────────────
+  type CustoVeiculo = {
+    modelo: string;
+    placa: string;
+    cor: string;
+    combustivel: number;
+    multas: number;
+    manutencao: number;
+  };
+  const custoMap = new Map<string, CustoVeiculo>();
+  function custoDoVeiculo(v: { id: string; modelo: string; placa: string; cor: string }): CustoVeiculo {
+    let e = custoMap.get(v.id);
+    if (!e) {
+      e = { modelo: v.modelo, placa: v.placa, cor: v.cor, combustivel: 0, multas: 0, manutencao: 0 };
+      custoMap.set(v.id, e);
+    }
+    return e;
+  }
+  for (const c of checklists) {
+    if (!c.abasteceu || !c.reserva?.veiculo) continue;
+    custoDoVeiculo(c.reserva.veiculo).combustivel += c.valor ?? 0;
+  }
+  for (const m of multas) {
+    if (!m.veiculo) continue;
+    custoDoVeiculo(m.veiculo).multas += m.valor;
+  }
+  for (const m of manutencoes) {
+    if (!m.veiculo || m.custo === null) continue;
+    custoDoVeiculo(m.veiculo).manutencao += m.custo;
+  }
+  const custoPorVeiculo = [...custoMap.values()]
+    .map((v) => ({ ...v, total: v.combustivel + v.multas + v.manutencao }))
+    .filter((v) => v.total > 0)
+    .sort((a, b) => b.total - a.total);
+  const maxCustoTotal = Math.max(...custoPorVeiculo.map((v) => v.total), 1);
+  const totalManutencaoValor = manutencoes.reduce((s, m) => s + (m.custo ?? 0), 0);
+
   const totalKm = kmVeiculos.reduce((s, v) => s + v.km, 0);
   const totalViagens = reservas.length;
 
@@ -213,6 +302,18 @@ export default async function RelatoriosPage({ searchParams }: Props) {
           ))}
         </div>
 
+        {totalViagens === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 py-16 px-6 text-center">
+            <BarChart2 className="w-12 h-12 mx-auto mb-3 text-gray-300 stroke-1" />
+            <p className="font-medium text-gray-700">Nenhum dado neste período</p>
+            <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto">
+              Os relatórios são gerados a partir de reservas aprovadas e
+              vistorias concluídas. Tente um período maior ou aguarde as
+              próximas viagens da frota.
+            </p>
+          </div>
+        ) : (
+          <>
         {/* Resumo */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -233,6 +334,107 @@ export default async function RelatoriosPage({ searchParams }: Props) {
             </p>
             <p className="text-xs text-gray-500 mt-0.5">Litros abastecidos</p>
           </div>
+        </div>
+
+        {/* Custo total por veículo */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+            <DollarSign className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">Custo total por veículo</h2>
+            {custoPorVeiculo.length > 0 && (
+              <span className="ml-auto text-xs font-semibold text-gray-500">
+                {fmtBRL(totalCusto + totalMultasValor + totalManutencaoValor)}
+              </span>
+            )}
+          </div>
+          {custoPorVeiculo.length === 0 ? (
+            <p className="px-4 py-8 text-sm text-gray-400 text-center">
+              Nenhum custo registrado no período
+            </p>
+          ) : (
+            <>
+              {/* Destaque: maior gasto */}
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <p className="text-xs text-gray-500 mb-1">Maior gasto no período</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {custoPorVeiculo[0].modelo}{" "}
+                    <span className="font-mono text-xs font-normal text-gray-500">
+                      {custoPorVeiculo[0].placa}
+                    </span>
+                  </p>
+                  <p className="text-sm font-bold text-gray-900 shrink-0">
+                    {fmtBRL(custoPorVeiculo[0].total)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Legenda das cores */}
+              <div className="flex items-center gap-4 px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" /> Combustível
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-500" /> Multas
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500" /> Manutenção
+                </span>
+              </div>
+
+              <div className="divide-y divide-gray-100">
+                {custoPorVeiculo.map((v) => (
+                  <div key={v.placa} className="px-4 py-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{v.modelo}</p>
+                        <p className="text-xs text-gray-400 font-mono">
+                          {v.placa} · {v.cor}
+                        </p>
+                      </div>
+                      <p className="text-sm font-bold text-gray-900 shrink-0 ml-3">
+                        {fmtBRL(v.total)}
+                      </p>
+                    </div>
+
+                    {/* Barra empilhada: comprimento = gasto relativo entre veículos,
+                        cores = de onde vem o gasto desse veículo */}
+                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden mb-1.5">
+                      <div
+                        className="h-full flex"
+                        style={{ width: `${(v.total / maxCustoTotal) * 100}%` }}
+                      >
+                        {v.combustivel > 0 && (
+                          <div
+                            className="h-full bg-blue-500"
+                            style={{ width: `${(v.combustivel / v.total) * 100}%` }}
+                          />
+                        )}
+                        {v.multas > 0 && (
+                          <div
+                            className="h-full bg-orange-500"
+                            style={{ width: `${(v.multas / v.total) * 100}%` }}
+                          />
+                        )}
+                        {v.manutencao > 0 && (
+                          <div
+                            className="h-full bg-red-500"
+                            style={{ width: `${(v.manutencao / v.total) * 100}%` }}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 text-xs text-gray-400">
+                      {v.combustivel > 0 && <span>Combustível: {fmtBRL(v.combustivel)}</span>}
+                      {v.multas > 0 && <span>Multas: {fmtBRL(v.multas)}</span>}
+                      {v.manutencao > 0 && <span>Manutenção: {fmtBRL(v.manutencao)}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* KM por veículo */}
@@ -317,7 +519,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1.5">
                     <div
-                      className="bg-indigo-500 h-1.5 rounded-full transition-all"
+                      className="bg-blue-400 h-1.5 rounded-full transition-all"
                       style={{ width: `${(m.viagens / maxViagens) * 100}%` }}
                     />
                   </div>
@@ -352,8 +554,48 @@ export default async function RelatoriosPage({ searchParams }: Props) {
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1.5">
                     <div
-                      className="bg-green-500 h-1.5 rounded-full transition-all"
+                      className="bg-blue-500 h-1.5 rounded-full transition-all"
                       style={{ width: `${(m.valor / maxMesValor) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Multas */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+            <Ticket className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-700">Multas</h2>
+            {multas.length > 0 && (
+              <span className="ml-auto text-xs font-semibold text-gray-500">
+                {fmtBRL(totalMultasValor)}
+              </span>
+            )}
+          </div>
+          {multasPorMotorista.length === 0 ? (
+            <p className="px-4 py-8 text-sm text-gray-400 text-center">
+              Nenhuma multa registrada no período
+            </p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {multasPorMotorista.map((m) => (
+                <div key={m.nome} className="px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-900 truncate">{m.nome}</p>
+                    <div className="text-right shrink-0 ml-3">
+                      <p className="text-sm font-bold text-gray-900">{fmtBRL(m.valor)}</p>
+                      <p className="text-xs text-gray-400">
+                        {m.count} multa{m.count !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="bg-orange-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${(m.valor / maxMultaValor) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -384,6 +626,8 @@ export default async function RelatoriosPage({ searchParams }: Props) {
               </div>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

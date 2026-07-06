@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { ImageIcon } from "lucide-react";
 import { GaleriaClient, type UsoFotos, type FotoItem } from "./GaleriaClient";
+import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
 import type { TipoFoto } from "@/lib/types/database.types";
 
 type FotoRaw = {
@@ -29,20 +30,11 @@ type FotoRaw = {
 };
 
 export default async function GaleriaPage() {
+  const usuarioAtual = await getUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+  if (usuarioAtual.perfil.papel !== "gestor") redirect("/home");
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data: perfil } = await supabase
-    .from("usuarios")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (perfil?.papel !== "gestor") redirect("/home");
 
   // Fetch all fotos with nested joins
   const { data: fotosRaw } = await supabase
