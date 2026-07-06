@@ -10,6 +10,7 @@ export default async function PerfilPage() {
   const { user, perfil } = usuarioAtual;
 
   const supabase = await createClient();
+  const isGestor = perfil?.papel === "gestor";
 
   // Carrega os dados atuais de CNH para pré-preencher o formulário — sem isso,
   // salvar apenas a validade zerava número e categoria já cadastrados.
@@ -18,6 +19,17 @@ export default async function PerfilPage() {
     .select("cnh_numero, cnh_categoria, cnh_validade")
     .eq("usuario_id", user.id)
     .single();
+
+  // Código da empresa — o gestor compartilha com a equipe para entrarem.
+  let empresaCodigo: string | null = null;
+  if (isGestor) {
+    const { data: empresa } = await supabase
+      .from("empresas")
+      .select("codigo")
+      .eq("id", perfil.empresa_id)
+      .single();
+    empresaCodigo = empresa?.codigo ?? null;
+  }
 
   // Status da própria CNH (só mostra alerta quando não está "ok").
   let cnhStatus: CnhStatus = null;
@@ -33,6 +45,7 @@ export default async function PerfilPage() {
     <PerfilForm
       nome={perfil?.nome ?? ""}
       email={user.email ?? ""}
+      empresaCodigo={empresaCodigo}
       inicial={{
         cnh_numero: motorista?.cnh_numero ?? "",
         cnh_categoria: motorista?.cnh_categoria ?? "",

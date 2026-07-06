@@ -251,11 +251,13 @@ export interface Database {
         Row: {
           id: string;
           nome: string;
+          codigo: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           nome: string;
+          codigo: string;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["empresas"]["Insert"]>;

@@ -169,11 +169,13 @@ function SairButton() {
 function Form({
   nome,
   email,
+  empresaCodigo,
   inicial,
   cnhStatus,
 }: {
   nome: string;
   email: string;
+  empresaCodigo: string | null;
   inicial: PerfilInicial;
   cnhStatus: CnhStatus;
 }) {
@@ -218,6 +220,21 @@ function Form({
                 <p className="text-xs text-gray-500">E-mail</p>
                 <p className="text-sm text-gray-900 font-medium">{email || "—"}</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {!novo && empresaCodigo && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h2 className="font-semibold text-gray-900 mb-1">Código da empresa</h2>
+            <p className="text-xs text-gray-500 mb-3">
+              Compartilhe este código com sua equipe — eles usam no cadastro para
+              entrar na sua empresa.
+            </p>
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-3">
+              <span className="text-xl font-mono font-bold tracking-widest text-gray-900">
+                {empresaCodigo}
+              </span>
             </div>
           </div>
         )}
@@ -335,17 +352,25 @@ function Form({
 export function PerfilForm({
   nome,
   email,
+  empresaCodigo,
   inicial,
   cnhStatus,
 }: {
   nome: string;
   email: string;
+  empresaCodigo: string | null;
   inicial: PerfilInicial;
   cnhStatus: CnhStatus;
 }) {
   return (
     <Suspense>
-      <Form nome={nome} email={email} inicial={inicial} cnhStatus={cnhStatus} />
+      <Form
+        nome={nome}
+        email={email}
+        empresaCodigo={empresaCodigo}
+        inicial={inicial}
+        cnhStatus={cnhStatus}
+      />
     </Suspense>
   );
 }
