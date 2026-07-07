@@ -5,6 +5,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { senhaSchema } from "@/lib/senha";
+import { verificarTurnstile } from "@/lib/turnstile";
+
+const CAPTCHA_ERRO = "Falha na verificação de segurança. Recarregue a página e tente novamente.";
+
+function tokenCaptcha(formData: FormData): string | null {
+  return (formData.get("cf-turnstile-response") as string | null) ?? null;
+}
 
 // ─── Logout ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +45,10 @@ export async function loginAction(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
+  }
+
+  if (!(await verificarTurnstile(tokenCaptcha(formData)))) {
+    return { error: CAPTCHA_ERRO };
   }
 
   const supabase = await createClient();
@@ -106,6 +117,10 @@ export async function cadastrarAction(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
+  }
+
+  if (!(await verificarTurnstile(tokenCaptcha(formData)))) {
+    return { error: CAPTCHA_ERRO };
   }
 
   const { nome, email, password, modo } = parsed.data;
@@ -239,6 +254,10 @@ export async function esquecerSenhaAction(
   const parsed = emailSchema.safeParse(email);
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  if (!(await verificarTurnstile(tokenCaptcha(formData)))) {
+    return { error: CAPTCHA_ERRO };
+  }
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://Frota.vercel.app/";

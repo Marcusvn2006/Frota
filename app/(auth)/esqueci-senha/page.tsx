@@ -7,6 +7,7 @@ import { esquecerSenhaAction } from "../actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Turnstile } from "@/components/Turnstile";
 import { CheckCircle } from "lucide-react";
 
 function SubmitButton() {
@@ -63,6 +64,8 @@ export default function EsqueciSenhaPage() {
             {state.error}
           </p>
         )}
+
+        <Turnstile />
 
         <SubmitButton />
       </form>
