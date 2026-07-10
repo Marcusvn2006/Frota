@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { senhaSchema } from "@/lib/senha";
 import { verificarTurnstile } from "@/lib/turnstile";
+import { gerarCodigoEmpresa } from "@/lib/codigoEmpresa";
 
 const CAPTCHA_ERRO = "Falha na verificação de segurança. Recarregue a página e tente novamente.";
 
@@ -90,17 +91,6 @@ const cadastroSchema = z
     message: "Informe o código da empresa",
     path: ["empresa_codigo"],
   });
-
-// Alfabeto sem caracteres ambíguos (O/0, I/1) para o código ser fácil de ditar.
-const CODIGO_ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-function gerarCodigoEmpresa(): string {
-  let s = "";
-  for (let i = 0; i < 6; i++) {
-    s += CODIGO_ALFABETO[Math.floor(Math.random() * CODIGO_ALFABETO.length)];
-  }
-  return s;
-}
 
 export async function cadastrarAction(
   _prev: FormState,
@@ -208,8 +198,22 @@ export async function cadastrarAction(
 
   // Reposiciona o perfil e o motorista na empresa correta (e promove a gestor
   // quem criou a empresa). Feito com o service_role — decisão de servidor.
-  await admin.from("usuarios").update({ empresa_id: empresaId, papel: papelFinal }).eq("id", userId);
-  await admin.from("motoristas").update({ empresa_id: empresaId }).eq("id", userId);
+  // Se qualquer um dos dois updates falhar, o usuário ficaria "meio-criado"
+  // (logado, mas na empresa/papel errado) sem nenhum aviso — por isso
+  // desfazemos a conta em vez de seguir como se tivesse dado certo.
+  const { error: errUsuario } = await admin
+    .from("usuarios")
+    .update({ empresa_id: empresaId, papel: papelFinal })
+    .eq("id", userId);
+  const { error: errMotorista } = await admin
+    .from("motoristas")
+    .update({ empresa_id: empresaId })
+    .eq("id", userId);
+
+  if (errUsuario || errMotorista) {
+    await admin.auth.admin.deleteUser(userId);
+    return { error: "Erro ao vincular sua conta à empresa. Tente novamente." };
+  }
 
   // Inicia a sessão após o cadastro
   const supabase = await createClient();

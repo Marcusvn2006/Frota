@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sincronizarVencimento } from "@/lib/vencimentos";
 import { senhaSchema } from "@/lib/senha";
+import { gerarCodigoEmpresa } from "@/lib/codigoEmpresa";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -113,4 +114,46 @@ export async function trocarSenhaAction(
   }
 
   return { success: "Senha atualizada com sucesso." };
+}
+
+// ─── Regenerar código da empresa ────────────────────────────────────────────
+
+export type RegenerarCodigoState =
+  | { error: string; codigo?: never }
+  | { codigo: string; error?: never }
+  | null;
+
+export async function regenerarCodigoEmpresaAction(
+  _prev: RegenerarCodigoState,
+  _formData: FormData
+): Promise<RegenerarCodigoState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autenticado." };
+
+  const { data: perfil } = await supabase
+    .from("usuarios")
+    .select("papel, empresa_id")
+    .eq("id", user.id)
+    .single();
+  if (perfil?.papel !== "gestor") return { error: "Acesso negado." };
+
+  // Poucas tentativas em caso de colisão de código (mesmo padrão do cadastro).
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
+    const novoCodigo = gerarCodigoEmpresa();
+    const { error } = await supabase
+      .from("empresas")
+      .update({ codigo: novoCodigo })
+      .eq("id", perfil.empresa_id);
+
+    if (!error) {
+      revalidatePath("/perfil");
+      return { codigo: novoCodigo };
+    }
+    if (error.code !== "23505") break; // erro que não é colisão de código
+  }
+
+  return { error: "Erro ao gerar novo código. Tente novamente." };
 }

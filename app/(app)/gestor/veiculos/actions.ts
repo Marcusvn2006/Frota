@@ -192,7 +192,20 @@ export async function ativarManutencaoAction(
 
   // Abre o registro de histórico — fechado (com custo) ao remover da
   // manutenção, em desativarManutencaoAction.
-  await supabase.from("manutencoes").insert({ veiculo_id: id, motivo: parsed.data.motivo });
+  const { error: manutError } = await supabase
+    .from("manutencoes")
+    .insert({ veiculo_id: id, motivo: parsed.data.motivo });
+
+  if (manutError) {
+    // Sem isso, o veículo ficaria marcado em_manutencao sem nenhum registro
+    // de histórico aberto — desativarManutencaoAction depois não acharia o
+    // que fechar, e o custo/motivo dessa manutenção se perderia de vez.
+    await supabase
+      .from("veiculos")
+      .update({ em_manutencao: false, manutencao_motivo: null })
+      .eq("id", id);
+    return { error: "Erro ao registrar o histórico de manutenção. Tente novamente." };
+  }
 
   revalidatePath("/gestor/veiculos");
   revalidatePath(`/gestor/veiculos/${id}/editar`);
@@ -219,15 +232,10 @@ export async function desativarManutencaoAction(
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { error: veiculoError } = await supabase
-    .from("veiculos")
-    .update({ em_manutencao: false, manutencao_motivo: null })
-    .eq("id", id);
-
-  if (veiculoError) return { error: "Erro ao atualizar status." };
-
-  // Fecha o registro de histórico aberto com o que foi feito e o custo.
-  await supabase
+  // Fecha o registro de histórico aberto primeiro — se não existir um (dado
+  // inconsistente por causa de algum estado anterior), não libera o veículo
+  // silenciosamente sem gravar custo/motivo em lugar nenhum.
+  const { data: fechado, error: manutError } = await supabase
     .from("manutencoes")
     .update({
       motivo: parsed.data.motivo,
@@ -235,7 +243,21 @@ export async function desativarManutencaoAction(
       data_fim: new Date().toISOString(),
     })
     .eq("veiculo_id", id)
-    .is("data_fim", null);
+    .is("data_fim", null)
+    .select("id")
+    .maybeSingle();
+
+  if (manutError) return { error: "Erro ao registrar o histórico de manutenção." };
+  if (!fechado) {
+    return { error: "Nenhum registro de manutenção em aberto encontrado para este veículo." };
+  }
+
+  const { error: veiculoError } = await supabase
+    .from("veiculos")
+    .update({ em_manutencao: false, manutencao_motivo: null })
+    .eq("id", id);
+
+  if (veiculoError) return { error: "Erro ao atualizar status do veículo." };
 
   revalidatePath("/gestor/veiculos");
   revalidatePath(`/gestor/veiculos/${id}/editar`);
