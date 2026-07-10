@@ -94,8 +94,10 @@ export async function criarReservaAction(
 
   if (destinosError) {
     // Sem isso, a reserva ficaria "fantasma": criada, aprovável pelo gestor,
-    // mas sem nenhum destino registrado.
-    await supabase.from("reservas").delete().eq("id", reserva.id);
+    // mas sem nenhum destino registrado. Deleta via admin porque o RLS de
+    // DELETE em reservas só permite gestor — o funcionário não conseguiria
+    // desfazer a própria reserva recém-criada com o client autenticado.
+    await createAdminClient().from("reservas").delete().eq("id", reserva.id);
     return { error: "Erro ao salvar os destinos. Tente novamente." };
   }
 
@@ -194,7 +196,7 @@ export async function criarReservaGestorAction(
   );
 
   if (destinosError) {
-    await supabase.from("reservas").delete().eq("id", reserva.id);
+    await createAdminClient().from("reservas").delete().eq("id", reserva.id);
     return { error: "Erro ao salvar os destinos. Tente novamente." };
   }
 
