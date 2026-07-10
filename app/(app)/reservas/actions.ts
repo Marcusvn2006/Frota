@@ -42,6 +42,12 @@ const reservaSchema = z
   .refine((d) => new Date(d.fim) > new Date(d.inicio), {
     message: "O horário de fim deve ser após o início",
     path: ["fim"],
+  })
+  // Margem de 1 min: evita falsear "está no passado" pelo tempo entre o
+  // usuário abrir o formulário (defaultValue calculado então) e enviar.
+  .refine((d) => new Date(toBRT(d.inicio)) > new Date(Date.now() - 60_000), {
+    message: "A data/hora de início não pode estar no passado",
+    path: ["inicio"],
   });
 
 // ─── Funcionário cria reserva (pendente, sem veículo) ─────────────────────────

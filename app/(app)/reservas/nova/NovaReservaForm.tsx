@@ -108,6 +108,7 @@ export function NovaReservaForm({ nomeInicial }: { nomeInicial: string }) {
                   name="inicio"
                   type="datetime-local"
                   defaultValue={localOffset(60)}
+                  min={localOffset(0)}
                   required
                 />
               </div>
