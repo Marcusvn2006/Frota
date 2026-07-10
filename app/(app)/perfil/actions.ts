@@ -102,7 +102,15 @@ export async function trocarSenhaAction(
     password: parsed.data.password,
   });
 
-  if (error) return { error: "Erro ao atualizar a senha. Tente novamente." };
+  if (error) {
+    if (
+      error.code === "same_password" ||
+      error.message?.toLowerCase().includes("different from the old")
+    ) {
+      return { error: "A nova senha precisa ser diferente da senha atual." };
+    }
+    return { error: "Erro ao atualizar a senha. Tente novamente." };
+  }
 
   return { success: "Senha atualizada com sucesso." };
 }

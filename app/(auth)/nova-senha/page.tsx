@@ -57,7 +57,14 @@ export default function NovaSenhaPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setFormError("Erro ao atualizar a senha. Tente novamente.");
+      if (
+        error.code === "same_password" ||
+        error.message?.toLowerCase().includes("different from the old")
+      ) {
+        setFormError("A nova senha precisa ser diferente da senha atual.");
+      } else {
+        setFormError("Erro ao atualizar a senha. Tente novamente.");
+      }
       setPending(false);
     } else {
       setSuccess(true);
