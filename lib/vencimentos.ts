@@ -29,6 +29,17 @@ export function somaDias(dataISO: string, dias: number): string {
   return new Date(Date.UTC(y, m - 1, d + dias)).toISOString().slice(0, 10);
 }
 
+/**
+ * ISO de "N dias atrás de agora", ou null se `dias` for null (sem limite).
+ * Existe para tirar a chamada a Date.now() de dentro de componentes de
+ * página (o linter de pureza do React reclama de funções impuras chamadas
+ * direto no corpo de um Server Component).
+ */
+export function dataLimitePeriodo(dias: number | null): string | null {
+  if (dias === null) return null;
+  return new Date(Date.now() - dias * 86_400_000).toISOString();
+}
+
 export type UrgenciaVencimento = "vencido" | "critico" | "atencao" | "ok";
 
 /** vencido (<0d), crítico (até 7d), atenção (até 30d), ok (depois). */

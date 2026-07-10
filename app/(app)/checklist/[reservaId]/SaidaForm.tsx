@@ -135,7 +135,7 @@ export function SaidaForm({ checklistId, reservaId, itens, horaAtual }: Props) {
         <div>
           <h2 className="font-semibold text-gray-900">Condições do veículo</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Toque em "OK" para marcar como "Não OK". Itens com problema ficam
+            Toque em “OK” para marcar como “Não OK”. Itens com problema ficam
             registrados.
           </p>
         </div>
