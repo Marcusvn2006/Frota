@@ -4,7 +4,7 @@ import { useActionState, Suspense, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { salvarPerfilAction, trocarSenhaAction } from "./actions";
+import { salvarPerfilAction, trocarSenhaAction, regenerarCodigoEmpresaAction } from "./actions";
 import { logoutAction } from "@/app/(auth)/actions";
 import { SENHA_DICA } from "@/lib/senha";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   KeyRound,
   LogOut,
+  RotateCw,
 } from "lucide-react";
 
 type PerfilInicial = {
@@ -171,6 +172,84 @@ function SairButton() {
   );
 }
 
+// ─── Regenerar código da empresa ────────────────────────────────────────────
+
+function RegenerarCodigoButton({ codigoAtual }: { codigoAtual: string }) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useActionState(regenerarCodigoEmpresaAction, null);
+  const router = useRouter();
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline shrink-0"
+      >
+        <RotateCw className="w-3.5 h-3.5" />
+        Gerar novo código
+      </button>
+
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v && state && "codigo" in state) router.refresh();
+        }}
+      >
+        <DialogContent>
+          {state && "codigo" in state ? (
+            <div className="space-y-4">
+              <div className="bg-green-50 text-green-700 text-sm px-4 py-3 rounded-lg border border-green-200 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                Novo código gerado. O código anterior deixou de funcionar.
+              </div>
+              <div className="flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 py-3">
+                <span className="text-xl font-mono font-bold tracking-widest text-gray-900">
+                  {state.codigo}
+                </span>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button">Fechar</Button>
+                </DialogClose>
+              </DialogFooter>
+            </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Gerar novo código?</DialogTitle>
+                <DialogDescription>
+                  O código atual (<span className="font-mono font-semibold">{codigoAtual}</span>)
+                  deixará de funcionar imediatamente. Use isso se o código vazou ou
+                  entrou alguém que não deveria.
+                </DialogDescription>
+              </DialogHeader>
+              <form action={formAction}>
+                {state?.error && (
+                  <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded-lg border border-red-200 mb-4">
+                    {state.error}
+                  </div>
+                )}
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                      Cancelar
+                    </Button>
+                  </DialogClose>
+                  <Button type="submit" variant="destructive">
+                    Gerar novo código
+                  </Button>
+                </DialogFooter>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 // ─── Formulário principal ──────────────────────────────────────────────────
 
 function Form({
@@ -233,7 +312,10 @@ function Form({
 
         {!novo && empresaCodigo && (
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h2 className="font-semibold text-gray-900 mb-1">Código da empresa</h2>
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <h2 className="font-semibold text-gray-900">Código da empresa</h2>
+              <RegenerarCodigoButton codigoAtual={empresaCodigo} />
+            </div>
             <p className="text-xs text-gray-500 mb-3">
               Compartilhe este código com sua equipe — eles usam no cadastro para
               entrar na sua empresa.

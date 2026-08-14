@@ -114,6 +114,7 @@ export function GestorNovaReservaForm({ nomeInicial, veiculos, funcionarios }: P
                     name="inicio"
                     type="datetime-local"
                     defaultValue={localOffset(60)}
+                    min={localOffset(0)}
                     required
                   />
                 </div>

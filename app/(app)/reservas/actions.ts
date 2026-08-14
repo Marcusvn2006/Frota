@@ -42,6 +42,12 @@ const reservaSchema = z
   .refine((d) => new Date(d.fim) > new Date(d.inicio), {
     message: "O horário de fim deve ser após o início",
     path: ["fim"],
+  })
+  // Margem de 1 min: evita falsear "está no passado" pelo tempo entre o
+  // usuário abrir o formulário (defaultValue calculado então) e enviar.
+  .refine((d) => new Date(toBRT(d.inicio)) > new Date(Date.now() - 60_000), {
+    message: "A data/hora de início não pode estar no passado",
+    path: ["inicio"],
   });
 
 // ─── Funcionário cria reserva (pendente, sem veículo) ─────────────────────────
@@ -82,9 +88,18 @@ export async function criarReservaAction(
 
   if (error || !reserva) return { error: "Erro ao criar reserva. Tente novamente." };
 
-  await supabase.from("reserva_destinos").insert(
+  const { error: destinosError } = await supabase.from("reserva_destinos").insert(
     destinos.map((d, i) => ({ reserva_id: reserva.id, destino: d, ordem: i + 1 }))
   );
+
+  if (destinosError) {
+    // Sem isso, a reserva ficaria "fantasma": criada, aprovável pelo gestor,
+    // mas sem nenhum destino registrado. Deleta via admin porque o RLS de
+    // DELETE em reservas só permite gestor — o funcionário não conseguiria
+    // desfazer a própria reserva recém-criada com o client autenticado.
+    await createAdminClient().from("reservas").delete().eq("id", reserva.id);
+    return { error: "Erro ao salvar os destinos. Tente novamente." };
+  }
 
   revalidatePath("/reservas");
   revalidatePath("/minhas-reservas");
@@ -176,9 +191,14 @@ export async function criarReservaGestorAction(
     return { error: "Erro ao criar reserva. Tente novamente." };
   }
 
-  await supabase.from("reserva_destinos").insert(
+  const { error: destinosError } = await supabase.from("reserva_destinos").insert(
     destinos.map((d, i) => ({ reserva_id: reserva.id, destino: d, ordem: i + 1 }))
   );
+
+  if (destinosError) {
+    await createAdminClient().from("reservas").delete().eq("id", reserva.id);
+    return { error: "Erro ao salvar os destinos. Tente novamente." };
+  }
 
   revalidatePath("/reservas");
   redirect("/reservas");
@@ -298,20 +318,18 @@ export async function cancelarPropriaSolicitacaoAction(id: string): Promise<void
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  // Verifica que a reserva existe, é pendente e pertence ao solicitante
-  const { data: reserva } = await supabase
-    .from("reservas")
-    .select("solicitante_id, status")
-    .eq("id", id)
-    .single();
-
-  if (!reserva) return;
-  if (reserva.status !== "pendente") return;
-  if (reserva.solicitante_id !== user.id) return;
-
-  // UPDATE via admin para contornar RLS (as verificações de posse já foram feitas acima)
+  // UPDATE via admin (contorna RLS, que só permite gestor atualizar), mas a
+  // posse e o estado "pendente" são reforçados dentro do próprio WHERE — não
+  // num SELECT anterior — para o UPDATE ser atômico. Sem isso, um gestor
+  // poderia aprovar a reserva entre o SELECT de checagem e este UPDATE,
+  // fazendo o funcionário "cancelar" (recusar) uma reserva já aprovada.
   const admin = createAdminClient();
-  await admin.from("reservas").update({ status: "recusada" }).eq("id", id);
+  await admin
+    .from("reservas")
+    .update({ status: "recusada" })
+    .eq("id", id)
+    .eq("status", "pendente")
+    .eq("solicitante_id", user.id);
 
   revalidatePath("/reservas");
   revalidatePath("/minhas-reservas");

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cleanupOldPhotosIfNeeded } from "@/lib/cleanupPhotos";
+import { sniffImageMime } from "@/lib/fileValidation";
 
 export type ChecklistFormState =
   | { error: string; success?: never }
@@ -42,10 +43,13 @@ export async function salvarSaidaAction(
   // em vez de seguir e mostrar um falso sucesso.
   const { data: clData } = await supabase
     .from("checklists")
-    .select("reserva:reservas!checklists_reserva_id_fkey(veiculo_id, empresa_id)")
+    .select("status, reserva:reservas!checklists_reserva_id_fkey(veiculo_id, empresa_id)")
     .eq("id", checklistId)
     .single();
   if (!clData) return { error: "Vistoria não encontrada ou sem permissão." };
+  if (clData.status === "concluido") {
+    return { error: "Esta vistoria já foi concluída e não pode mais ser editada." };
+  }
   const reservaData = clData.reserva as unknown as
     | { veiculo_id: string | null; empresa_id: string }
     | null;
@@ -86,18 +90,24 @@ export async function salvarSaidaAction(
   const foto = formData.get("painel_saida") as File | null;
   if (foto && foto.size > 0 && veiculoId) {
     const bytes = await foto.arrayBuffer();
-    const path = `${checklistId}/painel_saida_${Date.now()}.jpg`;
-    const { error: upErr } = await supabase.storage
-      .from("fotos-vistoria")
-      .upload(path, bytes, { contentType: foto.type || "image/jpeg" });
-    if (!upErr) {
-      await supabase.from("fotos").insert({
-        checklist_id: checklistId,
-        veiculo_id: veiculoId,
-        tipo: "painel_saida",
-        url: path,
-      });
-      await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
+    // Confia no conteúdo real do arquivo, não no Content-Type declarado pelo
+    // cliente — evita que bytes arbitrários sejam gravados no bucket rotulados
+    // como imagem só porque o form disse que era.
+    const mime = sniffImageMime(bytes);
+    if (mime) {
+      const path = `${checklistId}/painel_saida_${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("fotos-vistoria")
+        .upload(path, bytes, { contentType: mime });
+      if (!upErr) {
+        await supabase.from("fotos").insert({
+          checklist_id: checklistId,
+          veiculo_id: veiculoId,
+          tipo: "painel_saida",
+          url: path,
+        });
+        await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
+      }
     }
   }
 
@@ -120,10 +130,13 @@ export async function salvarChegadaAction(
   // Fetch veiculo_id + km_saida from DB — never trust client-supplied value
   const { data: clData } = await supabase
     .from("checklists")
-    .select("km_saida, reserva:reservas!checklists_reserva_id_fkey(veiculo_id, empresa_id)")
+    .select("km_saida, status, reserva:reservas!checklists_reserva_id_fkey(veiculo_id, empresa_id)")
     .eq("id", checklistId)
     .single();
   if (!clData) return { error: "Vistoria não encontrada ou sem permissão." };
+  if (clData.status === "concluido") {
+    return { error: "Esta vistoria já foi concluída e não pode mais ser editada." };
+  }
   const reservaData = clData.reserva as unknown as
     | { veiculo_id: string | null; empresa_id: string }
     | null;
@@ -160,18 +173,21 @@ export async function salvarChegadaAction(
   const painelChegada = formData.get("painel_chegada") as File | null;
   if (painelChegada && painelChegada.size > 0 && veiculoId) {
     const bytes = await painelChegada.arrayBuffer();
-    const path = `${checklistId}/painel_chegada_${Date.now()}.jpg`;
-    const { error: upErr } = await supabase.storage
-      .from("fotos-vistoria")
-      .upload(path, bytes, { contentType: painelChegada.type || "image/jpeg" });
-    if (!upErr) {
-      await supabase.from("fotos").insert({
-        checklist_id: checklistId,
-        veiculo_id: veiculoId,
-        tipo: "painel_chegada",
-        url: path,
-      });
-      await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
+    const mime = sniffImageMime(bytes);
+    if (mime) {
+      const path = `${checklistId}/painel_chegada_${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("fotos-vistoria")
+        .upload(path, bytes, { contentType: mime });
+      if (!upErr) {
+        await supabase.from("fotos").insert({
+          checklist_id: checklistId,
+          veiculo_id: veiculoId,
+          tipo: "painel_chegada",
+          url: path,
+        });
+        await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
+      }
     }
   }
 
@@ -180,18 +196,21 @@ export async function salvarChegadaAction(
     const cupom = formData.get("cupom") as File | null;
     if (cupom && cupom.size > 0 && veiculoId) {
       const bytes = await cupom.arrayBuffer();
-      const path = `${checklistId}/cupom_${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage
-        .from("fotos-vistoria")
-        .upload(path, bytes, { contentType: cupom.type || "image/jpeg" });
-      if (!upErr) {
-        await supabase.from("fotos").insert({
-          checklist_id: checklistId,
-          veiculo_id: veiculoId,
-          tipo: "cupom",
-          url: path,
-        });
-        await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
+      const mime = sniffImageMime(bytes);
+      if (mime) {
+        const path = `${checklistId}/cupom_${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("fotos-vistoria")
+          .upload(path, bytes, { contentType: mime });
+        if (!upErr) {
+          await supabase.from("fotos").insert({
+            checklist_id: checklistId,
+            veiculo_id: veiculoId,
+            tipo: "cupom",
+            url: path,
+          });
+          await cleanupOldPhotosIfNeeded(empresaId).catch(() => {});
+        }
       }
     }
   }

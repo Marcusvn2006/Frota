@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Turnstile } from "@/components/Turnstile";
 import { MailWarning, CheckCircle2 } from "lucide-react";
 
 function SubmitButton() {
@@ -82,6 +83,8 @@ export default function LoginPage() {
             {state.error}
           </p>
         )}
+
+        <Turnstile />
 
         <SubmitButton />
       </form>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Car, Fuel, Users, TrendingUp, BarChart2, Ticket, DollarSign } from "lucide-react";
 import { getUsuarioAtual } from "@/lib/auth/getUsuarioAtual";
+import { dataLimitePeriodo } from "@/lib/vencimentos";
 
 // ─── Período ─────────────────────────────────────────────────────────────────
 
@@ -88,9 +89,7 @@ export default async function RelatoriosPage({ searchParams }: Props) {
   // Client autenticado: o RLS já restringe tudo à empresa do gestor.
   const supabase = await createClient();
   const dias = PERIODOS[periodo];
-  const dataInicio = dias
-    ? new Date(Date.now() - dias * 86400000).toISOString()
-    : null;
+  const dataInicio = dataLimitePeriodo(dias);
   const dataInicioSoData = dataInicio ? dataInicio.slice(0, 10) : null;
 
   // Filtro de período empurrado para o banco (antes puxava o histórico

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Turnstile } from "@/components/Turnstile";
 import { Building2, KeyRound } from "lucide-react";
 import { SENHA_DICA } from "@/lib/senha";
 
@@ -134,6 +135,8 @@ export default function CadastrarPage() {
             {state.error}
           </p>
         )}
+
+        <Turnstile />
 
         <SubmitButton />
       </form>
